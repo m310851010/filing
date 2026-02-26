@@ -192,7 +192,7 @@ import { downloadByAjaxResponse } from '@/util/download';
     fileList.value = [];
   };
 
-  const beforeUpload: UploadProps['beforeUpload'] = (file) => {
+  const beforeUpload: UploadProps['beforeUpload'] = (file: any) => {
     const isDb = /\.db$/i.test(file.name);
     if (!isDb) {
       message.error('只能上传.db格式的文件');
@@ -223,8 +223,8 @@ import { downloadByAjaxResponse } from '@/util/download';
       currentStep.value = 3;
       // 重置所有表单校验状态
       forms.forEach(form => form?.value?.clearValidate());
-    } finally {
       importModalVisible.value = false;
+    } finally {
       importing.value = false;
     }
   };

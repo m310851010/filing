@@ -1,4 +1,4 @@
-import { forEachTree, list2Map } from '@/util';
+import { forEachTree, list2Map, SelectOption, toSelectItems } from '@/util';
 // 投入品种
 const input_variety: Array<{ value: string; unit: string }> = [
   {
@@ -44,11 +44,12 @@ const input_variety: Array<{ value: string; unit: string }> = [
 ];
 
 // 容量单位
-export const capacity_units = ['吨/小时', '立方米/小时', '千伏安', '立方米', '兆瓦'].map(item => ({ value: item }));
+const capacity_units = toSelectItems(['吨/小时', '立方米/小时', '千伏安', '立方米', '兆瓦']);
 
 const deviceTypes = [
   {
     value: '发电锅炉',
+    capacity_units: toSelectItems(['吨/小时']),
     // 主要用途
     children: [
       {
@@ -130,6 +131,8 @@ const deviceTypes = [
   },
   {
     value: '工业锅炉',
+    capacity_units: toSelectItems(['吨/小时', '兆瓦']),
+    // 主要用途
     children: [
       {
         value: '供热',
@@ -174,8 +177,6 @@ const deviceTypes = [
             output_energy_types: [
               {
                 value: '热载体',
-                // 产出计量单位
-                unit: '万立方米'
               }
             ]
           }
@@ -185,6 +186,8 @@ const deviceTypes = [
   },
   {
     value: '窑炉',
+    capacity_units,
+    // 主要用途
     children: [
       {
         value: '供热',
@@ -201,6 +204,8 @@ const deviceTypes = [
   },
   {
     value: '气化炉',
+    capacity_units,
+    // 主要用途
     children: [
       {
         value: '原料',
@@ -260,6 +265,8 @@ const deviceTypes = [
   },
   {
     value: '炼铁高炉',
+    capacity_units,
+    // 主要用途
     children: [
       {
         value: '供热',
@@ -292,6 +299,8 @@ const deviceTypes = [
   },
   {
     value: '焦化炉',
+    capacity_units,
+    // 主要用途
     children: [
       {
         value: '原料',
@@ -327,6 +336,8 @@ const deviceTypes = [
   },
   {
     value: '矿热炉',
+    capacity_units,
+    // 主要用途
     children: [
       {
         value: '供热',
@@ -368,6 +379,7 @@ export { deviceTypes, filterOption };
 export interface DeviceType {
   value: string;
   label: string;
+  capacity_units: SelectOption[];
   children?: MainUsage[];
 }
 

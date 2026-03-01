@@ -1,7 +1,7 @@
 <template>
   <a-layout style="padding-top: 60px; height: 100%;" >
     <div class="header-container">
-      <h2 class="flex-main">数据填报辅助工具</h2>
+      <div   class="flex-main text-center" style="font-size: 26px; font-weight: bold;">数据填报辅助工具</div>
       <div class="layout-header-action">
         <a-dropdown class="header-action-item" trigger="hover">
           <div @click.prevent>

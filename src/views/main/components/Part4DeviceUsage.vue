@@ -60,7 +60,7 @@
                   required
                   label="累计使用时间"
                   :name="['devices', index, 'usage_time']"
-                  :rules="[{ required: true, message: '请输入累计使用时间' }]"
+                  :rules="[{ required: true, message: '请输入累计使用时间' }, { validator: (rule: any, value: number) => validateUsageTime(rule, value, device), trigger: 'change' }]"
                 >
                   <a-input-number v-model:value="device.usage_time" :min="0" :max="50" :precision="0" :step="1" placeholder="0~50" />
                 </a-form-item>
@@ -70,7 +70,7 @@
                   :name="['devices', index, 'design_life']"
                   :rules="[{ required: true, message: '请输入设计年限' }]"
                 >
-                  <a-input-number v-model:value="device.design_life" :min="0" :max="200" :precision="0" :step="1" placeholder="设计年限" />
+                  <a-input-number v-model:value="device.design_life" :min="0" :max="200" :precision="0" :step="1" placeholder="设计年限" @change="() => onDesignLifeChange(device, index)" />
                 </a-form-item>
                 <a-form-item
                   required
@@ -88,7 +88,7 @@
                   :name="['devices', index, 'capacity_unit']"
                   :rules="[{ required: true, message: '请选择容量单位' }]"
                 >
-                  <a-select v-model:value="device.capacity_unit" placeholder="容量单位" style="width: 120px" allowClear :options="capacity_units" />
+                  <a-select v-model:value="device.capacity_unit" placeholder="容量单位" style="width: 120px" allowClear :options="device._device_type?.capacity_units" />
                 </a-form-item>
                 <a-form-item
                   required
@@ -106,11 +106,23 @@
                     class="d-w"
                   />
                 </a-form-item>
+                <a-form-item
+                  label="年投入量"
+                  :name="['devices', index, 'input_quantity']"
+                >
+                  <a-input-number
+                    v-model:value="device.input_quantity"
+                    :precision="2"
+                    placeholder="年投入量"
+                    class="d-w"
+                    readonly
+                  />
+                </a-form-item>
               </a-space>
             </template>
             <template #extra>
               <a-form-item>
-                <a-button type="link" danger @click="devices.splice(index, 1)" size="small">删除设备</a-button>
+                <a-button type="link" danger @click="handleDeleteDevice(index)" size="small">删除设备</a-button>
               </a-form-item>
             </template>
 
@@ -196,7 +208,14 @@
                       :rules="[{ required: true, message: '请输入年投入量' }, { type: 'number', max: 10000, message: '不能超过10000' }]"
                       style="margin-bottom: 0"
                     >
-                      <a-input-number v-model:value="record.input_quantity" :precision="2" :min="0" class="w-100" placeholder="年投入量" />
+                      <a-input-number 
+                        v-model:value="record.input_quantity" 
+                        :precision="2" 
+                        :min="0" 
+                        class="w-100" 
+                        placeholder="年投入量" 
+                        @change="onInputQuantityChange(device)"
+                      />
                     </a-form-item>
                   </template>
                 </a-table-column>
@@ -245,7 +264,7 @@
 
                 <a-table-column title="操作" width="60px">
                   <template #default="{ index: uIdx }">
-                    <a-button type="link" danger @click="device.usages.splice(uIdx, 1)">删除</a-button>
+                    <a-button type="link" danger @click="handleDeleteUsage(device, uIdx)">删除</a-button>
                   </template>
                 </a-table-column>
               </a-table>
@@ -276,8 +295,9 @@
   import { ref, reactive, nextTick, watch } from 'vue';
   import type { FormInstance } from 'ant-design-vue';
   import { PlusOutlined } from '@ant-design/icons-vue';
-  import { deviceTypes, capacity_units, DeviceType, MainUsage, SpecificUsage, OpgionUnit, filterOption } from './device_types';
-  import { UUID } from '@/util';
+  import { deviceTypes, DeviceType, MainUsage, SpecificUsage, OpgionUnit, filterOption } from './device_types';
+  import { floatSum, SelectOption, UUID } from '@/util';
+  import { deviceUsageChange$, deviceTotalInputChange$ } from './validation-subject';
 
   const props = defineProps({
     filingData: {
@@ -300,6 +320,12 @@
   const deviceTypeOptions = deviceTypes;
   const enecrgy_efficienct_bmks = ['优于先进水平', '先进水平至节能水平之间', '节能水平至准入水平之间', '低于准入水平', '无能效标准'];
 
+  /**
+   * 验证产出品种品类是否为空
+   * @param _rule 验证规则
+   * @param value 产出品种品类
+   * @param record 用途
+   */
   const validateOutputEnergyTypes = async (_rule: any, value: string, record: Usage) => {
     const options = record._specific_usage?.output_energy_types || [];
     if (options.length > 0 && !value) {
@@ -308,10 +334,15 @@
     return Promise.resolve();
   };
 
+  /**
+   * 验证编号是否重复
+   * @param _rule 验证规则
+   * @param value 编号
+   * @param device 设备
+   */
   const validateCoalNo = async (_rule: any, value: string, device: Device) => {
     if (!value) return Promise.resolve();
-    // 检查是否有重复编号
-     const idx = formState.devices.indexOf(device);
+    const idx = formState.devices.indexOf(device);
     const duplicateCount = formState.devices.filter((d, index) => d.coal_no === value && index !== idx).length;
     if (duplicateCount > 0) {
       return Promise.reject('编号不能重复');
@@ -319,15 +350,67 @@
     return Promise.resolve();
   };
 
+  /**
+   * 验证使用年限是否大于设计年限
+   * @param _rule 验证规则
+   * @param value 使用年限
+   * @param device 设备
+   */
+  const validateUsageTime = async (_rule: any, value: number, device: Device) => {
+    if (!value) return Promise.resolve();
+    if (device.design_life && value > device.design_life) {
+      return Promise.reject('不能大于设计年限');
+    }
+    return Promise.resolve();
+  };
+
+  const checkHasRawMaterial = () => {
+    return formState.devices.some((device: Device) => 
+      (device.usages || []).some((usage: Usage) => usage.main_usage === '原料')
+    );
+  };
+
+  const emitDeviceUsageChange = () => {
+    deviceUsageChange$.next({
+      hasRawMaterial: checkHasRawMaterial()
+    });
+  };
+
+  const emitDeviceTotalInputChange = () => {
+    const total = formState.devices.reduce((sum: number, device: Device) => {
+      return floatSum([sum, device.input_quantity || 0]);
+    }, 0);
+    deviceTotalInputChange$.next({
+      totalInputQuantity: total
+    });
+  };
+
+  const handleDeleteDevice = (index: number) => {
+    formState.devices.splice(index, 1);
+    emitDeviceUsageChange();
+    emitDeviceTotalInputChange();
+  };
+
+  const handleDeleteUsage = (device: Device, uIdx: number) => {
+    device.usages.splice(uIdx, 1);
+    emitDeviceUsageChange();
+    emitDeviceTotalInputChange();
+  };
+
   const onCoalNoChange = (device: Device) => {
     nextTick(() => {
       const idx = formState.devices.indexOf(device);
       formState.devices.forEach((_: Device, index: number) => {
         if (index !== idx) {
-          console.log('触发重复验证===', formState.devices.map(d => d.coal_no));  
           formRef.value?.validateFields([['devices', index, 'coal_no']]);
         }
       });
+    });
+  };
+
+  const onDesignLifeChange = (device: Device, index: number) => {
+    nextTick(() => {
+      formRef.value?.validateFields([['devices', index, 'usage_time']]);
     });
   };
 
@@ -356,6 +439,7 @@
   // 设备类型改变时，清空主要用途、具体用途、投入品种品类、投入计量单位、产出品种品类、产出计量单位
   const handleTypeChange = (device: Device, deviceType?: string) => {
     device._device_type = deviceTypes.find(d => d.value === deviceType)!;
+    device.capacity_unit = undefined;
     for (const usage of device.usages) {
       usage.main_usage = undefined;
       usage.specific_usage = undefined;
@@ -380,6 +464,8 @@
 
     record._main_usage = mainUsage;
     record._specific_usage = undefined;
+    
+    emitDeviceUsageChange();
   };
 
   // 当具体用途改变时的处理函数
@@ -437,6 +523,28 @@
   };
 
 
+  // 年投入量变化时的处理函数,计算设备的年投入量总和
+  const onInputQuantityChange = (device: Device) => {
+     if (!device.usages || device.usages.length === 0) {
+      device.input_quantity = 0;
+      emitDeviceTotalInputChange();
+      return;
+    }
+
+    const total = device.usages.reduce((sum: number, usage: Usage) => {
+      // 过滤掉未选择投入品种的项
+      if (!usage.input_quantity || !usage.input_variety) {
+        return sum;
+      }
+      if (!['原煤', '洗原煤', '洗精煤', '其他洗煤', '其他煤制品'].includes(usage.input_variety)) {
+        return sum;
+      }
+      return floatSum([sum, usage.input_quantity!]);
+    }, 0);
+    device.input_quantity = total;
+    emitDeviceTotalInputChange();
+  };
+
   // 监听 props.devices 变化，添加临时属性
   watch(
     () => props.devices,
@@ -487,6 +595,19 @@
     { deep: true }
   );
 
+  // 监听投入品种变化，重新计算设备的年投入量
+  watch(
+    () => formState.devices.map(device => 
+      device.usages.map(usage => usage.input_variety)
+    ),
+    () => {
+      formState.devices.forEach(device => {
+        onInputQuantityChange(device);
+      });
+    },
+    { deep: true }
+  );
+
   defineExpose({
     validateForm,
     getFormData,
@@ -523,6 +644,7 @@
     enecrgy_efficienct_bmk?: string;
     capacity_unit?: string;
     capacity?: number;
+    input_quantity?: number;
     usages: Usage[];
 
     // 缓存设备类型，用于显示选项标签

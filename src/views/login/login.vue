@@ -108,13 +108,15 @@
   let SMS_COUNTDOWN_DURATION: number = 0;
 
   const formState = reactive({
-    // username: 'test1234',
-    // password: 'Test@1234!',
-    username: '',
-    password: '',
+    username: 'test1234',
+    password: 'Test@1234!',
+    phone: '13512345678',
+    smsCode: '1',
+    // username: '',
+    // password: '',
+    // phone: '',
+    // smsCode: '',
     verifyCode: '',
-    phone: '',
-    smsCode: '',
     remember: false
   });
 

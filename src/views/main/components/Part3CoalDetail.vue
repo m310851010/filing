@@ -42,6 +42,8 @@
 <script setup lang="ts">
   import { ref, reactive, watch } from 'vue';
   import type { FormInstance } from 'ant-design-vue';
+  import { validateSum } from '@/util';
+  import { coalConsumptionChange$ } from './validation-subject';
 
   const props = defineProps({
     filingData: {
@@ -62,34 +64,65 @@
   });
 
    const maxRule = { type: 'number', max: 10000, message: '数值不能超过10000' };
+
+  // 自定义验证器：原煤消费量应等于其中各项之和
+  const validateRawCoalConsumption = async (_rule: any, value: number) => {
+    const { valid, sum } = validateSum(value, [
+      formState.coal.annual_anthracite_consumption,
+      formState.coal.annual_bituminous_coal_consumption,
+      formState.coal.annual_lignite_consumption
+    ]);
+    if (!valid) {
+      return Promise.reject(`原煤消费量应等于其中各项之和（无烟煤+烟煤+褐煤=${sum}）`);
+    }
+    return Promise.resolve();
+  };
+
+  // 自定义验证器：其中各项之和应等于原煤消费量
+  const validateCoalComponent = async () => {
+    const rawCoal = formState.coal.annual_raw_coal_consumption;
+    if (rawCoal === undefined || rawCoal === null) {
+      return Promise.resolve();
+    }
+    const { valid } = validateSum(rawCoal, [
+      formState.coal.annual_anthracite_consumption,
+      formState.coal.annual_bituminous_coal_consumption,
+      formState.coal.annual_lignite_consumption
+    ]);
+    if (!valid) {
+      return Promise.reject('其中各项之和应等于原煤消费量');
+    }
+    return Promise.resolve();
+  };
+
   const leftFields = [
     {
       key: 'annual_raw_coal_consumption',
       label: '原煤消费量',
       unit: '万吨',
       required: true,
-      rules: [{ required: true, message: '请输入原煤消费量' }, maxRule]
+      rules: [{ required: true, message: '请输入原煤消费量' }, maxRule, { validator: validateRawCoalConsumption }]
     },
     {
       key: 'annual_anthracite_consumption',
       label: '其中：无烟煤消费量',
       unit: '万吨',
       required: true,
-      rules: [{ required: true, message: '请输入无烟煤消费量' }, maxRule]
+      rules: [{ required: true, message: '请输入无烟煤消费量' }, maxRule, { validator: validateCoalComponent }]
     },
     {
       key: 'annual_bituminous_coal_consumption',
       label: '其中：烟煤消费量',
       unit: '万吨',
       required: true,
-      rules: [{ required: true, message: '请输入烟煤消费量' }, maxRule]
+      rules: [{ required: true, message: '请输入烟煤消费量' }, maxRule, { validator: validateCoalComponent }]
     },
     {
       key: 'annual_lignite_consumption',
       label: '其中：褐煤消费量',
       unit: '万吨',
       required: true,
-      rules: [{ required: true, message: '请输入褐煤消费量' }, maxRule]
+      rules: [{ required: true, message: '请输入褐煤消费量' }, maxRule, { validator: validateCoalComponent }]
     },
     {
       key: 'annual_clean_coal_consumption',
@@ -158,6 +191,44 @@
     return JSON.parse(JSON.stringify(formState.coal));
   };
 
+  // 监听原煤消费量变化，重新验证"其中"各字段
+  watch(
+    () => formState.coal.annual_raw_coal_consumption,
+    () => {
+      // 使用 setTimeout 确保在值更新后再验证
+      setTimeout(() => {
+        formRef.value?.validateFields([
+          'annual_anthracite_consumption',
+          'annual_bituminous_coal_consumption',
+          'annual_lignite_consumption'
+        ]).catch(() => {
+          // 忽略验证错误，只触发验证更新状态
+        });
+      }, 0);
+    }
+  );
+
+  // 监听"其中"各字段变化，重新验证原煤消费量和其他"其中"字段
+  watch(
+    () => [
+      formState.coal.annual_anthracite_consumption,
+      formState.coal.annual_bituminous_coal_consumption,
+      formState.coal.annual_lignite_consumption
+    ],
+    () => {
+      setTimeout(() => {
+        formRef.value?.validateFields([
+          'annual_raw_coal_consumption',
+          'annual_anthracite_consumption',
+          'annual_bituminous_coal_consumption',
+          'annual_lignite_consumption'
+        ]).catch(() => {
+          // 忽略验证错误，只触发验证更新状态
+        });
+      }, 0);
+    }
+  );
+
   watch(
     () => props.coal,
     (newVal) => {
@@ -173,7 +244,27 @@
     }
   );
 
+  const emitCoalConsumptionChange = () => {
+    coalConsumptionChange$.next({
+      raw_coal_consumption: formState.coal.annual_raw_coal_consumption || 0,
+      clean_coal_consumption: formState.coal.annual_clean_coal_consumption || 0,
+      other_coal_consumption: formState.coal.annual_other_coal_consumption || 0
+    });
+  };
+
+  watch(
+    () => [
+      formState.coal.annual_raw_coal_consumption,
+      formState.coal.annual_clean_coal_consumption,
+      formState.coal.annual_other_coal_consumption
+    ],
+    () => {
+      emitCoalConsumptionChange();
+    }
+  );
+
   defineExpose({
+    emitCoalConsumptionChange,
     validateForm,
     getFormData,
     clearValidate: () => formRef.value?.clearValidate(),

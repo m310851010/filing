@@ -14,8 +14,8 @@
         <a-space>
           <a-button @click="handleImportDBFile" type="primary" >导入db文件</a-button>
           <a-button @click="handleValidateData" type="primary" >数据校核</a-button>
-          <a-button type="primary" :disabled="!canExport" @click="exportFile('db')">导出db文件</a-button>
-          <!-- <a-button :disabled="!canExport" @click="exportFile('excel')">导出excel文件</a-button> -->
+          <a-button type="primary" :disabled="!canExport" @click="exportDBFile">导出db文件</a-button>
+          <a-button :disabled="true" >导出excel文件</a-button> 
         </a-space>
       </template>
 
@@ -88,7 +88,6 @@ import { downloadByAjaxResponse } from '@/util/download';
 
   const currentStep = ref(0);
   const canExport = ref(false);
-  const validationPassed = ref(false);
   const importModalVisible = ref(false);
   const fileList = ref<UploadProps['fileList']>([]);
   const importing = ref(false);
@@ -106,75 +105,93 @@ import { downloadByAjaxResponse } from '@/util/download';
    * 获取当前表单数据
    * @returns 包含所有表单数据的对象
    */
-  const getFormData = () => {
-    const names = ['baseInfo', 'energy', 'coal', 'devices'];
+  const getFormData = async () => {
     const data: Record<string, any> = {};
-    names.forEach(name => data[name] = forms[names.indexOf(name)].value?.getFormData());
-    // 添加对象的 obj_id, stat_date, unit_name, credit_code
+
+    const valid = await baseInfoRef.value!.validateForm();
+    if (!valid) {
+      message.error('请填写完整单位基础信息');
+      return null;
+    }
+     
+    data.baseInfo = baseInfoRef.value!.getFormData();
+     // 添加对象的 obj_id, stat_date, unit_name, credit_code
     const commonFields = {
       stat_date: data.baseInfo.stat_date,
       unit_name: data.baseInfo.unit_name,
       credit_code: data.baseInfo.credit_code
     };
 
-    Object.assign(data.energy, commonFields, { obj_id: data.energy.obj_id || UUID()});
-    Object.assign(data.coal, commonFields, { obj_id: data.coal.obj_id || UUID()});
-
-    data.devices.forEach((device: any) => {
-      Object.assign(device, commonFields);
-      device.usages.forEach((usage: any) => {
-        Object.assign(usage, commonFields);
-      });
+    const names = ['baseInfo', 'energy', 'coal'];
+    names.forEach(name => {
+      const index = names.indexOf(name);
+      if (forms[index] && forms[index].value) {
+        data[name] = forms[index].value!.getFormData();
+        Object.assign(data[name], commonFields);
+      }
     });
+
+    if (deviceUsageRef.value) {
+      data.devices = deviceUsageRef.value.devices;
+        data.devices.forEach((device: any) => {
+          Object.assign(device, commonFields);
+          device.usages.forEach((usage: any) => {
+            Object.assign(usage, commonFields);
+          });
+        });
+    }
 
     return data;
   };
 
-  const handleValidateData = async () => {
-    if ( currentStep.value !== 3) {
-      message.error('请先完成所有步骤');
-      return;
-    }
 
-    // 校验所有表单，当验证失败切换tab到当前tab
-    const valid = await Promise.all(forms.map(form => form.value?.validateForm() || false));
-    if (!valid.every(v => v)) {
-      message.error('请先完成所有步骤');
-      return;
-    }
-
-    // 获取当前表单数据
-    const data = getFormData();
-
-     if (data.energy.annual_raw_coal > 0) {
-      const found = data.devices.some((device: any) => (device.usages||[]).some((usage: any) => usage.main_usage == '原料'))
-      if (!found) {
-        message.error('年原料用煤消费量>0时，请在主要用途中列出“原料”数据');
-        currentStep.value = 3;
-        return;
-      }
-    }
-
-    const res = await http.post('/data/filing/validate', data);
-    validationPassed.value = true;
-    canExport.value = true;
-
-    if (res.success) {
-      validationPassed.value = true;
-      canExport.value = true;
-      message.success('校验通过');
-    } else {
-      Modal.confirm({
+/**
+ * 验证失败导出db文件
+ * @param data 导出数据
+ */
+  const handleInvlidaExportDb = async (data: Record<string, any> | null | undefined) => {
+    if (!data) return;
+    Modal.confirm({
         title: '校验未通过',
-        content: '数据存在异常，是否继续并允许下载文件？',
-        onOk: () => {
+        content: '数据校验未通过，是否继续并下载文件？',
+        okText: '继续下载文件',
+        onOk: async () => {
+          data.valid = false;
+          await http.post('/data/filing/validate', data);
           canExport.value = true;
-          validationPassed.value = false;
         },
         onCancel: () => {
           canExport.value = false;
         }
       });
+  }
+
+  const handleValidateData = async () => {
+    if ( currentStep.value !== 3) {
+      const data = await getFormData();
+      handleInvlidaExportDb(data)
+      return;
+    }
+    
+    // 校验所有表单
+    const valid = await Promise.all(forms.map(form => form.value?.validateForm() || false));
+    if (!valid.every(v => v)) {
+      const data = await getFormData();
+      handleInvlidaExportDb(data)
+      return;
+    }
+
+    // 获取当前表单数据
+    const data = await getFormData();
+    if (!data) return;
+
+    data.valid = true;
+    const res = await http.post('/data/filing/validate', data);
+    canExport.value = true;
+
+    if (res.success) {
+      canExport.value = true;
+      message.success('校验通过');
     }
   };
 
@@ -229,7 +246,7 @@ import { downloadByAjaxResponse } from '@/util/download';
     }
   };
 
-  const exportFile = async (type: string) => {
+  const exportDBFile = async () => {
     const res = await http.get(`/data/filing/export/db`, null, { observe: 'response', responseType: 'blob' });
     downloadByAjaxResponse(res);
   };

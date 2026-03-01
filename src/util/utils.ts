@@ -266,3 +266,62 @@ export interface TreeNode {
 }
 
 export type TreeChildren<T = any> = (node: T, parentNode: T | undefined, level: number) => T[] | null;
+
+/**
+ * 浮点数求和（处理精度问题）
+ * @param numbers 要相加的数字数组
+ * @param precision 保留小数位数，默认为2
+ * @returns 求和结果
+ */
+export function floatSum(numbers: number[], precision: number = 2): number {
+  const sum = numbers.reduce((acc, val) => acc + (val || 0), 0);
+  return parseFloat(sum.toFixed(precision));
+}
+
+/**
+ * 浮点数相等比较（处理精度问题）
+ * @param a 数字a
+ * @param b 数字b
+ * @param precision 保留小数位数，默认为2
+ * @returns 是否相等
+ */
+export function floatEqual(a: number, b: number, precision: number = 2): boolean {
+  const aFixed = parseFloat((a || 0).toFixed(precision));
+  const bFixed = parseFloat((b || 0).toFixed(precision));
+  return aFixed === bFixed;
+}
+
+/**
+ * 验证总值是否等于分项之和（用于表单验证）
+ * @param total 总值
+ * @param items 分项数组
+ * @param precision 保留小数位数，默认为2
+ * @returns 验证结果对象
+ */
+export function validateSum(
+  total: number,
+  items: number[],
+  precision: number = 2
+): { valid: boolean; sum: number } {
+  const sum = floatSum(items, precision);
+  const valid = floatEqual(total, sum, precision);
+  return { valid, sum };
+}
+
+
+/**
+ * 转换为select项
+ * @param list  列表数据
+ * @returns select项
+ */
+export function toSelectItems(list: string[]): SelectOption[] {
+  return list.map((item) => ({
+    value: item,
+    label: item
+  }));
+}
+
+export type SelectOption = {
+  value: string;
+  label: string;
+}

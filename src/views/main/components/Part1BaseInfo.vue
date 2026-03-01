@@ -12,14 +12,29 @@
       </a-col>
       <a-col :span="12">
         <a-form-item label="单位名称" name="unit_name">
-          <a-input :value="formState.baseInfo.unit_name" placeholder="请输入单位名称" @update:value="handleUnitNameChange">
-          <template #suffix>
-            <loading-outlined style="color: rgba(0, 0, 0, 0.45)" spin v-if="unitNameLoading" />
-            <a-tooltip v-if="!unitNameLoading && unitNameTooltip" :title="unitNameTooltip">
-              <info-circle-outlined class="ant-form-item-explain-error"/>
-            </a-tooltip>
-          </template>
-          </a-input>
+          <a-input-group compact class="relative">
+            <a-select
+            class="abs w-100"
+            v-model:value="formState.baseInfo.unit_name"
+            placeholder="请输入单位名称"
+            show-search
+            allow-clear
+            :default-active-first-option="false"
+            :show-arrow="false"
+            :filter-option="false"
+            :not-found-content="null"
+            :options="unitNameOptions"
+            @search="handleSearch"
+            @change="handleUnitNameChange">
+            </a-select>
+            <span class="unit_name-tip" >
+              <loading-outlined spin v-if="unitNameLoading" />
+              <a-tooltip v-if="!unitNameLoading && unitNameTooltip" :title="unitNameTooltip">
+                <info-circle-outlined class="ant-form-item-explain-error"/>
+              </a-tooltip>
+            </span>
+              
+          </a-input-group>
         </a-form-item>
       </a-col>
       <a-col :span="12">
@@ -154,7 +169,7 @@
   import China from '@/assets/China.json';
   import { forEachTree } from '@/util';
   import { filterOption } from './device_types';
-  import {  http2 } from '@/util/http';
+  import {  http, http2 } from '@/util/http';
   import { of, Subject } from 'rxjs';
   import { debounceTime, switchMap, tap, catchError } from 'rxjs/operators';
 
@@ -237,39 +252,79 @@
   const formState = reactive({baseInfo: props.baseInfo});
   const unitNameLoading = ref(false);
   const unitNameTooltip = ref('');
+  // 单位名称搜索
+  const unitNameOptions = ref<any>([]);
+
+  const handleSearch = async (keyword: string) => {
+    unitNameChange$.next(keyword);
+  };
 
   const unitNameChange$ = new Subject<string>();
-
   unitNameChange$.pipe(
     debounceTime(500),
     tap(() => {
+      unitNameTooltip.value = '';
       unitNameLoading.value = true;
     }),
     switchMap((value: string) => {
-      const unit_name = value.trim();
-      if (!unit_name || unit_name.length < 3 || unit_name.length > 100) {
-        formState.baseInfo.credit_code = '';
+      const keyword = value.trim();
+      
+      if (!keyword || keyword.length < 3) {
         unitNameLoading.value = false;
-        unitNameTooltip.value = '单位名称长度必须在大于2个字符';
-        return of('');
+        unitNameTooltip.value = '单位名称长度必须大于2个字符';
+        return of([]);
       }
-      console.log('unit_name', unit_name);
-      return http2.post<string>('/data/filing/getCompanyBaseInfo', { unit_name }, {loading: false})
+     
+      return http2.post<string[]>('/data/filing/getSuggestCompanyName', { unit_name: keyword }, {loading: false})
         .pipe(
-          tap((credit_code: string) => {
+          tap((options: string[]) => {
             unitNameLoading.value = false;
-            unitNameTooltip.value = credit_code ? '' : '单位名称不存在或未注册';
+            unitNameTooltip.value = options ? '' : '未查询到相关单位名称';
           }),
           catchError((err: any) => {
             unitNameLoading.value = false;
             unitNameTooltip.value = err.message || '查询单位名称失败';
-            return of('');
+            return of([]);
           })
         );
-    })
-  ).subscribe((credit_code) => {
-      formState.baseInfo.credit_code = credit_code || '';
+    }), 
+    
+  ).subscribe((list: string[]) => {
+    const options = list || [];
+    unitNameOptions.value = (options || []).map(item => ({
+      label: item,
+      value: item
+    }));
   });
+  
+  /**
+   * 单位名称改变时查询单位名称对应的统一社会信用代码
+   * @param e 
+   */
+  const handleUnitNameChange = (unit_name: string) => {
+     unitNameTooltip.value = '';
+    if (!unit_name) {
+      unitNameLoading.value = false;
+      formState.baseInfo.credit_code = '';
+      return;
+    }
+
+    unitNameLoading.value = true;
+    http2.post<string>('/data/filing/getCompanyBaseInfo', { unit_name }, {loading: false})
+    .pipe(
+      tap((credit_code: string) => {
+        unitNameLoading.value = false;
+        unitNameTooltip.value = credit_code ? '' : '未查询到相关统一社会信用代码';
+      }),
+      catchError((err: any) => {
+        unitNameLoading.value = false;
+        unitNameTooltip.value = err.message || '查询统一社会信用代码失败';
+        return of('');
+      })
+    ).subscribe((credit_code: string) => {
+      formState.baseInfo.credit_code = credit_code;
+    });
+  };
 
   const rules = {
     stat_date: [{ required: true, message: '请选择统计日期' }],
@@ -293,15 +348,6 @@
     ],
     is_captive_power_plant: [{ required: true, message: '请选择是否含有自备电厂' }],
     enterprise_type: [{ required: true, message: '请选择企业类型' }]
-  };
-
-  /**
-   * 单位名称改变时查询单位名称对应的统一社会信用代码
-   * @param e 
-   */
-  const handleUnitNameChange = (value: string) => {
-    formState.baseInfo.unit_name = value;
-    unitNameChange$.next(value);
   };
 
   const validateForm = async () => {
@@ -338,4 +384,14 @@
   });
 </script>
 
-<style scoped></style>
+<style scoped>
+.unit_name-tip {
+  color: rgba(0, 0, 0, 0.45);
+  right: -25px;
+  left: initial;
+  width: 20px;
+  top: 5px;
+  z-index: 100;
+  position: absolute;
+}
+</style>

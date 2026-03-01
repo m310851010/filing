@@ -18,7 +18,7 @@
 </script>
 <style lang="less" scoped>
   .loading-box {
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
     right: 0;

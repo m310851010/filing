@@ -22,7 +22,7 @@
 <script setup lang="ts">
   import { ref, reactive, watch, onUnmounted } from 'vue';
   import type { FormInstance } from 'ant-design-vue';
-  import { coalConsumptionChange$, deviceUsageChange$, deviceTotalInputChange$ } from './validation-subject';
+  import { coalConsumptionChange$, deviceUsageChange$, deviceTotalInputChange$, currentStepRef } from './validation-subject';
   // 定义props，接收父组件传递的energy对象，并添加默认值
   const props = defineProps({
     energy: {
@@ -60,6 +60,9 @@
   };
 
   const validateCoalConsumptionSum = async (_rule: any, value: number) => {
+    if (currentStepRef.value < 2) {
+       return Promise.resolve();
+    }
     const { raw_coal_consumption, clean_coal_consumption, other_coal_consumption } = coalConsumptionData;
     const sum = raw_coal_consumption + clean_coal_consumption + other_coal_consumption;
     if (value !== undefined && value !== null && Math.abs(value - sum) > 0.01) {
@@ -69,6 +72,9 @@
   };
 
   const validateDeviceTotalInput = async (_rule: any, value: number) => {
+    if (currentStepRef.value < 3) {
+       return Promise.resolve();
+    }
     if (value !== undefined && value !== null && Math.abs(value - deviceTotalInputData.totalInputQuantity) > 0.01) {
       return Promise.reject(`年煤炭消费总量(实物量)应等于主要用途情况，设备的"投入量"加和（${deviceTotalInputData.totalInputQuantity.toFixed(2)}万吨）`);
     }
@@ -76,6 +82,9 @@
   };
 
   const validateRawCoal = async (_rule: any, value: number) => {
+    if (currentStepRef.value < 3) {
+       return Promise.resolve();
+    }
     if (value && value > 0 && !deviceUsageData.hasRawMaterial) {
       return Promise.reject('年原料用煤消费量>0时，请在主要用途中列出"原料"数据');
     }

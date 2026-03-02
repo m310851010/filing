@@ -107,16 +107,20 @@
   const SMS_COUNTDOWN_KEY = 'sms_countdown_end_time';
   let SMS_COUNTDOWN_DURATION: number = 0;
 
-  const formState = reactive({
+  const defaultFormState = import.meta.env.DEV? {
     username: 'test1234',
     password: 'Test@1234!',
     phone: '13512345678',
     smsCode: '1',
-    // username: '',
-    // password: '',
-    // phone: '',
-    // smsCode: '',
+  }: {};
+  
+  const formState = reactive({
+    username: '',
+    password: '',
+    phone: '',
+    smsCode: '',
     verifyCode: '',
+    ...defaultFormState,
     remember: false
   });
 

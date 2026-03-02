@@ -14,6 +14,7 @@ CREATE TABLE "enterprise_equipment_coal_consumption" (
   "enecrgy_efficienct_bmk" varchar(20),                -- 能效对标 优于先进水平  先进水平至节能水平之间  节能水平至准入水平之间  无能效标准
   "capacity_unit" varchar(10),                         -- 容量单位
   "capacity" varchar(50),                              -- 容量
+  "input_quantity" varchar(100),                       -- 年投入量，2位小数，加密
   "create_user" varchar(100) NOT NULL,                 -- 上传用户
   "create_time" datetime NOT NULL,                     -- 创建时间
 	"is_check" varchar(100),                             -- 是否已校核，0未校核，1已校核，2校核未通过，加密

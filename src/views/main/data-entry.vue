@@ -14,7 +14,7 @@
         <a-space>
           <a-button @click="handleImportDBFile" type="primary" >导入db文件</a-button>
           <a-button @click="handleValidateData" type="primary" >数据校核</a-button>
-          <a-button type="primary" :disabled="!canExport" @click="exportDBFile">导出db文件</a-button>
+          <a-button type="primary" :disabled="!canExport" @click="handleExportDBFile">导出db文件</a-button>
           <a-button :disabled="true" >导出excel文件</a-button> 
         </a-space>
       </template>
@@ -74,6 +74,7 @@
   import { FilingData } from './components/device_types';
 import { UUID } from '@/util';
 import { downloadByAjaxResponse } from '@/util/download';
+import { currentStepRef } from './components/validation-subject';
 
   const Part1BaseInfo = defineAsyncComponent(() => import('./components/Part1BaseInfo.vue'));
   const Part2EnergySummary = defineAsyncComponent(() => import('./components/Part2EnergySummary.vue'));
@@ -122,7 +123,7 @@ import { downloadByAjaxResponse } from '@/util/download';
       credit_code: data.baseInfo.credit_code
     };
 
-    const names = ['baseInfo', 'energy', 'coal'];
+    const names = ['baseInfo', 'energy', 'coal', 'devices'];
     names.forEach(name => {
       const index = names.indexOf(name);
       if (forms[index] && forms[index].value) {
@@ -132,7 +133,6 @@ import { downloadByAjaxResponse } from '@/util/download';
     });
 
     if (deviceUsageRef.value) {
-      data.devices = deviceUsageRef.value.devices;
         data.devices.forEach((device: any) => {
           Object.assign(device, commonFields);
           device.usages.forEach((usage: any) => {
@@ -156,12 +156,9 @@ import { downloadByAjaxResponse } from '@/util/download';
         content: '数据校验未通过，是否继续并下载文件？',
         okText: '继续下载文件',
         onOk: async () => {
-          data.valid = false;
+          data.checkStatus = '2';
           await http.post('/data/filing/validate', data);
-          canExport.value = true;
-        },
-        onCancel: () => {
-          canExport.value = false;
+          await downloadDBFile();
         }
       });
   }
@@ -169,7 +166,7 @@ import { downloadByAjaxResponse } from '@/util/download';
   const handleValidateData = async () => {
     if ( currentStep.value !== 3) {
       const data = await getFormData();
-      handleInvlidaExportDb(data)
+      handleInvlidaExportDb(data);
       return;
     }
     
@@ -177,7 +174,7 @@ import { downloadByAjaxResponse } from '@/util/download';
     const valid = await Promise.all(forms.map(form => form.value?.validateForm() || false));
     if (!valid.every(v => v)) {
       const data = await getFormData();
-      handleInvlidaExportDb(data)
+      handleInvlidaExportDb(data);
       return;
     }
 
@@ -185,12 +182,9 @@ import { downloadByAjaxResponse } from '@/util/download';
     const data = await getFormData();
     if (!data) return;
 
-    data.valid = true;
+    data.checkStatus = '1';
     const res = await http.post('/data/filing/validate', data);
-    canExport.value = true;
-
     if (res.success) {
-      canExport.value = true;
       message.success('校验通过');
     }
   };
@@ -201,6 +195,10 @@ import { downloadByAjaxResponse } from '@/util/download';
     const valid = await currentForm.validateForm();
     if (valid) {
       currentStep.value++;
+      currentStepRef.value = currentStep.value;
+      if (currentStep.value > 0) {
+        canExport.value = true;
+      }
     }
   };
 
@@ -238,6 +236,9 @@ import { downloadByAjaxResponse } from '@/util/download';
       Object.assign(formData, res);
       message.success('导入成功');
       currentStep.value = 3;
+      currentStepRef.value = 3;
+      canExport.value = true;
+      
       // 重置所有表单校验状态
       forms.forEach(form => form?.value?.clearValidate());
       importModalVisible.value = false;
@@ -246,7 +247,22 @@ import { downloadByAjaxResponse } from '@/util/download';
     }
   };
 
-  const exportDBFile = async () => {
+  /**
+   * 处理导出db文件
+   */
+  const handleExportDBFile = async () => {
+    // 获取当前表单数据
+    const data = await getFormData();
+    if (!data) return;
+    data.checkStatus = '0';
+    await http.post('/data/filing/validate', data);
+    await downloadDBFile();
+  };
+
+  /**
+   * 下载db文件
+   */
+   const downloadDBFile = async () => {
     const res = await http.get(`/data/filing/export/db`, null, { observe: 'response', responseType: 'blob' });
     downloadByAjaxResponse(res);
   };
@@ -255,15 +271,6 @@ import { downloadByAjaxResponse } from '@/util/download';
     e.preventDefault();
   };
 
-  const initFormData = () => {
-    http.get('/data/filing/getdb').then(res => {
-      if (!res) return;
-      Object.assign(formData, res);
-      currentStep.value = 3;
-    });
-  };
-
-initFormData();
 </script>
 
 <style scoped lang="less">

@@ -12,7 +12,9 @@
       </a-col>
       <a-col :span="12">
         <a-form-item label="单位名称" name="unit_name">
-          <a-input-group compact class="relative">
+          <a-input v-model:value="formState.baseInfo.unit_name" placeholder="请输入单位名称" />
+            
+          <!-- <a-input-group compact class="relative">
             <a-select
             class="abs w-100"
             v-model:value="formState.baseInfo.unit_name"
@@ -34,12 +36,13 @@
               </a-tooltip>
             </span>
               
-          </a-input-group>
+          </a-input-group> -->
         </a-form-item>
       </a-col>
       <a-col :span="12">
         <a-form-item label="统一社会信用代码" name="credit_code">
-          <a-input v-model:value="formState.baseInfo.credit_code" :maxlength="18" placeholder="请输入统一社会信用代码" readonly/>
+          <a-input v-model:value="formState.baseInfo.credit_code" :maxlength="18" placeholder="请输入统一社会信用代码"/>
+          <!-- <a-input v-model:value="formState.baseInfo.credit_code" :maxlength="18" placeholder="请输入统一社会信用代码" readonly/> -->
         </a-form-item>
       </a-col>
       <a-col :span="12">

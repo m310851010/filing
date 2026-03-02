@@ -70,7 +70,7 @@
                   :name="['devices', index, 'design_life']"
                   :rules="[{ required: true, message: '请输入设计年限' }]"
                 >
-                  <a-input-number v-model:value="device.design_life" :min="0" :max="200" :precision="0" :step="1" placeholder="设计年限" @change="() => onDesignLifeChange(device, index)" />
+                  <a-input-number v-model:value="device.design_life" :min="0" :max="50" :precision="0" :step="1" placeholder="设计年限" @change="() => onDesignLifeChange(device, index)" />
                 </a-form-item>
                 <a-form-item
                   required
@@ -141,7 +141,10 @@
                   <template #default="{ record, index: uIdx }">
                     <a-form-item
                       :name="['devices', index, 'usages', uIdx, 'main_usage']"
-                      :rules="[{ required: true, message: '请选择主要用途' }]"
+                      :rules="[
+                        { required: true, message: '请选择主要用途' },
+                        { validator: (rule: any, value: any) => validateUsageDuplicate(rule, value, device, record, 'main_usage'), trigger: 'change' }
+                      ]"
                       style="margin-bottom: 0"
                     >
                       <a-select
@@ -160,7 +163,10 @@
                   <template #default="{ record, index: uIdx }">
                     <a-form-item
                       :name="['devices', index, 'usages', uIdx, 'specific_usage']"
-                      :rules="[{ required: true, message: '请输入具体用途' }]"
+                      :rules="[
+                        { required: true, message: '请输入具体用途' },
+                        { validator: (rule: any, value: any) => validateUsageDuplicate(rule, value, device, record, 'specific_usage'), trigger: 'change' }
+                      ]"
                       style="margin-bottom: 0"
                     >
                       <a-select
@@ -180,7 +186,10 @@
                   <template #default="{ record, index: uIdx }">
                     <a-form-item
                       :name="['devices', index, 'usages', uIdx, 'input_variety']"
-                      :rules="[{ required: true, message: '请选择投入品种' }]"
+                      :rules="[
+                        { required: true, message: '请选择投入品种' },
+                        { validator: (rule: any, value: any) => validateUsageDuplicate(rule, value, device, record, 'input_variety'), trigger: 'change' }
+                      ]"
                       style="margin-bottom: 0"
                     >
                       <a-select
@@ -223,7 +232,10 @@
                   <template #default="{ record, index: uIdx }">
                     <a-form-item
                       :name="['devices', index, 'usages', uIdx, 'output_energy_types']"
-                      :rules="[{ validator: (rule: any, value: string) => validateOutputEnergyTypes(rule, value, record), trigger: 'change' }]"
+                      :rules="[
+                        { validator: (rule: any, value: string) => validateOutputEnergyTypes(rule, value, record), trigger: 'change' },
+                        { validator: (rule: any, value: any) => validateUsageDuplicate(rule, value, device, record, 'output_energy_types'), trigger: 'change' }
+                      ]"
                       style="margin-bottom: 0"
                     >
                       <a-select
@@ -330,6 +342,34 @@
     const options = record._specific_usage?.output_energy_types || [];
     if (options.length > 0 && !value) {
       return Promise.reject('请选择产出品种品类');
+    }
+    return Promise.resolve();
+  };
+
+  /**
+   * 验证用途明细是否重复
+   * 主要用途、具体用途、投入品种、产出品种品类全部相同即为重复
+   * @param _rule 验证规则
+   * @param value 字段值
+   * @param device 设备
+   * @param usage 当前用途
+   * @param field 当前校验的字段名
+   */
+  const validateUsageDuplicate = async (_rule: any, value: any, device: Device, usage: Usage, field: string) => {
+    if (!value) return Promise.resolve();
+    
+    const usageIndex = device.usages.indexOf(usage);
+    const duplicates = device.usages.filter((u: Usage, index: number) => {
+      if (index === usageIndex) return false;
+      // 四个字段全部相同即为重复
+      return u.main_usage === usage.main_usage &&
+             u.specific_usage === usage.specific_usage &&
+             u.input_variety === usage.input_variety &&
+             u.output_energy_types === usage.output_energy_types;
+    });
+    
+    if (duplicates.length > 0) {
+      return Promise.reject('用途明细重复');
     }
     return Promise.resolve();
   };
@@ -536,7 +576,7 @@
       if (!usage.input_quantity || !usage.input_variety) {
         return sum;
       }
-      if (!['原煤', '洗原煤', '洗精煤', '其他洗煤', '其他煤制品'].includes(usage.input_variety)) {
+      if (!['原煤', '洗精煤', '其他洗煤','煤制品'].includes(usage.input_variety)) {
         return sum;
       }
       return floatSum([sum, usage.input_quantity!]);
@@ -587,8 +627,11 @@
     () => formState.devices.map(d => d.coal_no),
     () => {
       nextTick(() => {
-        formState.devices.forEach((_: Device, index: number) => {
-          formRef.value?.validateFields([['devices', index, 'coal_no']]);          
+        formState.devices.forEach((device: Device, index: number) => {
+          // 只校验有值的编号，避免新添加的设备触发校验
+          if (device.coal_no) {
+            formRef.value?.validateFields([['devices', index, 'coal_no']]);          
+          }
         });
       });
     },
@@ -603,6 +646,36 @@
     () => {
       formState.devices.forEach(device => {
         onInputQuantityChange(device);
+      });
+    },
+    { deep: true }
+  );
+
+  // 监听用途明细四个字段变化，触发重复校验
+  watch(
+    () => formState.devices.map(device =>
+      device.usages.map(usage => ({
+        main_usage: usage.main_usage,
+        specific_usage: usage.specific_usage,
+        input_variety: usage.input_variety,
+        output_energy_types: usage.output_energy_types
+      }))
+    ),
+    (newVal, oldVal) => {
+      nextTick(() => {
+        formState.devices.forEach((device: Device, deviceIndex: number) => {
+          device.usages.forEach((usage: Usage, usageIndex: number) => {
+            const fieldsToValidate: [string, number, string, number, string][] = [];
+            if (usage.main_usage && usage.specific_usage && usage.input_variety && usage.output_energy_types) {
+              formRef.value?.validateFields([
+                ['devices', deviceIndex, 'usages', usageIndex, 'main_usage'],
+                ['devices', deviceIndex, 'usages', usageIndex, 'specific_usage'],
+                ['devices', deviceIndex, 'usages', usageIndex, 'input_variety'],
+                ['devices', deviceIndex, 'usages', usageIndex, 'output_energy_types']
+            ]);
+            }
+          });
+        });
       });
     },
     { deep: true }

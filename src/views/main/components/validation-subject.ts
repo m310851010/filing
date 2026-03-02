@@ -1,4 +1,5 @@
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
+
 
 /**
  * 煤消费量验证数据
@@ -32,7 +33,20 @@ export interface DeviceTotalInputData {
   totalInputQuantity: number;
 }
 
+/**
+ * 煤消费量变更事件
+ */
 export const coalConsumptionChange$ = new Subject<CoalValidationData>();
+/**
+ * 设备用途变更事件
+ */
 export const deviceUsageChange$ = new Subject<DeviceUsageValidationData>();
+/**
+ * 设备输入量变更事件
+ */
 export const deviceTotalInputChange$ = new Subject<DeviceTotalInputData>();
 
+/**
+ * 当前步骤
+ */
+export const currentStepRef = ref(0);

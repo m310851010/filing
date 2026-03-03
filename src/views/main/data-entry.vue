@@ -20,8 +20,8 @@
         </a-space>
       </template>
 
-      <div class="box-content" style="overflow: auto;">
-        <div :style="{minWidth: currentStep === 3 ? '1310px' : '100%', paddingBottom: '24px', height: '100%'}">
+      <div class="box-content" style="overflow: auto;padding-right: 20px;">
+        <div :style="{minWidth: currentStep === 4 ? '1310px' : '100%', paddingBottom: '24px', height: '100%'}">
           <div v-if="currentStep >= 0">
             <div id="unitInfo" class="titile-line">（1）填写单位属性</div>
             <Part0UnitInfo ref="unitInfoRef" v-model:unitInfo="formData.unitInfo" v-model:filingData="formData" />
@@ -45,7 +45,7 @@
         </div>
 
         <div class="button-footer">
-          <a-button v-if="currentStep < 3" type="primary" style="width: 150px;" @click="handleNextStep">下一步</a-button>
+          <a-button v-if="currentStep < 4" type="primary" style="width: 150px;" @click="handleNextStep">下一步</a-button>
         </div>
       </div>
     </a-card>
@@ -120,14 +120,24 @@ import { currentStepRef } from './components/validation-subject';
       message.error('请填写完整单位属性');
       return null;
     }
+
+    if (!baseInfoRef.value) {
+       message.error('请填写完整单位基础信息');
+      return null;
+    }
     
     const baseInfoValid = await baseInfoRef.value!.validateForm();
     if (!baseInfoValid) {
       message.error('请填写完整单位基础信息');
       return null;
     }
-     
+    
+    const unitInfo = await unitInfoRef.value!.getFormData();
+
+    // 合并单位属性到基础信息
     data.baseInfo = baseInfoRef.value!.getFormData();
+    data.baseInfo.enterprise_type = unitInfo.enterprise_type;
+
      // 添加对象的 obj_id, stat_date, unit_name, credit_code
     const commonFields = {
       stat_date: data.baseInfo.stat_date,
@@ -135,9 +145,9 @@ import { currentStepRef } from './components/validation-subject';
       credit_code: data.baseInfo.credit_code
     };
 
-    const names = ['baseInfo', 'energy', 'coal', 'devices'];
-    names.forEach(name => {
-      const index = names.indexOf(name);
+    const names = ['energy', 'coal', 'devices'];
+    names.forEach((name, index) => {
+      index = index + 2;
       if (forms[index] && forms[index].value) {
         data[name] = forms[index].value!.getFormData();
         Object.assign(data[name], commonFields);
@@ -176,7 +186,7 @@ import { currentStepRef } from './components/validation-subject';
   }
 
   const handleValidateData = async () => {
-    if ( currentStep.value !== 3) {
+    if ( currentStep.value !== 4) {
       const data = await getFormData();
       handleInvlidaExportDb(data);
       return;
@@ -202,7 +212,6 @@ import { currentStepRef } from './components/validation-subject';
   };
 
   const handleNextStep = async () => {
-    if (currentStep.value === 3) return;
     const currentForm = forms[currentStep.value].value!;
     const valid = await currentForm.validateForm();
     if (valid) {
@@ -243,9 +252,10 @@ import { currentStepRef } from './components/validation-subject';
       form.append('file', fileList.value[0].originFileObj as File);
       const res = await http.post<FilingData>('/data/filing/import/db', form);
       Object.assign(formData, res);
+      formData.unitInfo = { enterprise_type: res.baseInfo?.enterprise_type};
       message.success('导入成功');
-      currentStep.value = 3;
-      currentStepRef.value = 3;
+      currentStep.value = 4;
+      currentStepRef.value = 4;
       
       // 重置所有表单校验状态
       forms.forEach(form => form?.value?.clearValidate());

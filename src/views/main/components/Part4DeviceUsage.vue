@@ -309,7 +309,7 @@
   import { PlusOutlined } from '@ant-design/icons-vue';
   import { deviceTypes, DeviceType, MainUsage, SpecificUsage, OpgionUnit, filterOption } from './device_types';
   import { floatSum, SelectOption, UUID } from '@/util';
-  import { deviceUsageChange$, deviceTotalInputChange$ } from './validation-subject';
+  import { deviceUsageChange$, deviceTotalInputChange$, deviceChange$ } from './validation-subject';
 
   const props = defineProps({
     filingData: {
@@ -589,6 +589,7 @@
   watch(
     () => props.devices,
     (newDevices) => {
+      console.log('watch props.devices', newDevices);
       newDevices.forEach((device: Device) => {
         // 添加或更新 _device_type
         if (device.equipment_type) {
@@ -610,6 +611,8 @@
       });
 
       formState.devices = newDevices;
+      emitDeviceUsageChange();
+      emitDeviceTotalInputChange();
     },
     {immediate: true}
   );
@@ -681,6 +684,16 @@
     { deep: true }
   );
 
+  // 监听设备类型和自备电厂用锅炉字段变化，发送事件
+  watch(
+    () => formState.devices.map(device => (device.equipment_type || '') + (device.is_captive_power_plant_boiler || '')),
+    () => {
+      console.log('设备类型或自备电厂用锅炉字段变化');
+      deviceChange$.next(Date.now());
+    },
+    { deep: true }
+  );
+
   defineExpose({
     validateForm,
     getFormData,
@@ -709,7 +722,7 @@
   interface Device {
     obj_id?: string;
     equipment_type?: string;
-    is_captive_power_plant_boiler?: number;
+    is_captive_power_plant_boiler?: string;
     coal_no?: string;
     equipment_model?: string;
     usage_time?: number;

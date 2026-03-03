@@ -3,7 +3,7 @@
   <a-form ref="formRef" :model="formState.coal" :label-col="{ style: { width: '180px' } }">
     <a-row :gutter="24">
       <a-col :span="12">
-        <a-card title="煤炭消费情况" size="small">
+        <a-card title="煤炭消费情况" size="small" style="padding-right: 20px;">
           <a-form-item
             v-for="field in leftFields"
             :key="field.key"
@@ -12,9 +12,14 @@
             :required="field.required"
             :rules="field.rules"
           >
-            <a-input-number v-model:value="formState.coal[field.key]" :precision="2" class="w-100" :placeholder="`请输入${field.label}`">
-              <template #addonAfter>{{ field.unit }}</template>
-            </a-input-number>
+            <div class="relative">
+              <a-input-number v-model:value="formState.coal[field.key]" :precision="2" class="w-100" :placeholder="`请输入${field.label}`">
+                <template #addonAfter>{{ field.unit }}</template>
+              </a-input-number>
+              <a-tooltip v-if="field.tooltip" :title="field.tooltip" placement="topRight">
+                <span class="item-tip" ><info-circle-outlined /></span>
+              </a-tooltip>
+            </div>
           </a-form-item>
         </a-card>
       </a-col>
@@ -29,9 +34,14 @@
             :required="field.required"
             :rules="field.rules"
           >
-            <a-input-number v-model:value="formState.coal[field.key]" :precision="2" class="w-100" :placeholder="`请输入${field.label}`">
-              <template #addonAfter>{{ field.unit }}</template>
-            </a-input-number>
+            <div class="relative">
+              <a-input-number v-model:value="formState.coal[field.key]" :precision="2" class="w-100" :placeholder="`请输入${field.label}`">
+                <template #addonAfter>{{ field.unit }}</template>
+              </a-input-number>
+              <a-tooltip v-if="field.tooltip" :title="field.tooltip" placement="topRight">
+                <span class="item-tip" ><info-circle-outlined /></span>
+              </a-tooltip>
+            </div>
           </a-form-item>
         </a-card>
       </a-col>
@@ -42,6 +52,7 @@
 <script setup lang="ts">
   import { ref, reactive, watch } from 'vue';
   import type { FormInstance } from 'ant-design-vue';
+  import { InfoCircleOutlined } from '@ant-design/icons-vue';
   import { validateSum } from '@/util';
   import { coalConsumptionChange$ } from './validation-subject';
 
@@ -95,12 +106,13 @@
     return Promise.resolve();
   };
 
-  const leftFields = [
+  const leftFields: {key: string, label: string, unit: string, required: boolean, tooltip?: string, rules: any[]}[] = [
     {
       key: 'annual_raw_coal_consumption',
       label: '原煤消费量',
       unit: '万吨',
       required: true,
+      tooltip: '原煤消费量应等于其中各项之和（无烟煤+烟煤+褐煤）',
       rules: [{ required: true, message: '请输入原煤消费量' }, maxRule, { validator: validateRawCoalConsumption }]
     },
     {
@@ -147,7 +159,7 @@
     }
   ];
 
-  const rightFields = [
+  const rightFields: {key: string, label: string, unit: string, required: boolean, tooltip?: string, rules: any[]}[] = [
     {
       key: 'annual_coke_consumption',
       label: '焦炭消费量',
@@ -229,17 +241,22 @@
     }
   );
 
+  onMounted(() => {
+    formState.coal = props.coal || {}
+    emitCoalConsumptionChange();
+  });
+
   watch(
     () => props.coal,
     (newVal) => {
       formState.coal = newVal || {}
+      emitCoalConsumptionChange();
     }
   );
 
   watch(
     () => props.filingData,
     (newVal) => {
-      console.log('3 filingData', newVal);
       filingData = newVal || {}
     }
   );

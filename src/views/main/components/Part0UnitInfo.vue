@@ -3,7 +3,7 @@
     <a-row :gutter="24">
       <a-col :span="12">
         <a-form-item label="单位类型" name="enterprise_type">
-          <a-select v-model:value="formState.unitInfo.enterprise_type" placeholder="请选择单位类型">
+          <a-select v-model:value="formState.unitInfo.enterprise_type" placeholder="请选择单位类型" allowClear>
             <a-select-option value="规上企业">规上企业</a-select-option>
             <a-select-option value="规下单位">规下单位</a-select-option>
           </a-select>
@@ -72,13 +72,5 @@
 </script>
 
 <style scoped>
-.unit_name-tip {
-  color: rgba(0, 0, 0, 0.45);
-  right: -25px;
-  left: initial;
-  width: 20px;
-  top: 5px;
-  z-index: 100;
-  position: absolute;
-}
+
 </style>

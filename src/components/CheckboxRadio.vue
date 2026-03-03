@@ -76,5 +76,7 @@ const handleBlur = () => {
 </script>
 
 <style scoped>
-
+.checkbox-radio-container {
+  display: inline-block;
+}
 </style>

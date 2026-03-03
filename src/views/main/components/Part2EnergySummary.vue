@@ -4,15 +4,21 @@
     <a-row :gutter="24">
       <a-col :span="12" v-for="field in fields" :key="field.key">
         <a-form-item :label="field.label" :name="field.key" :required="field.required" :rules="field.rules">
-          <a-input-number
-            v-model:value="formState.energy[field.key]"
-            :precision="2"
-            :min="0"
-            class="w-100"
-            :placeholder="`请输入${field.label}`"
-          >
-            <template #addonAfter>{{ field.unit }}</template>
-          </a-input-number>
+          <div class="relative">
+            <a-input-number
+              v-model:value="formState.energy[field.key]"
+              :precision="2"
+              :min="0"
+              class="w-100"
+              :placeholder="`请输入${field.label}`"
+            >
+              <template #addonAfter>{{ field.unit }}</template>
+            </a-input-number>
+            <a-tooltip v-if="field.tooltip" placement="topRight">
+              <template #title><span v-html="field.tooltip"></span></template>
+              <span class="item-tip" ><info-circle-outlined /></span>
+            </a-tooltip>
+          </div>
         </a-form-item>
       </a-col>
     </a-row>
@@ -22,7 +28,9 @@
 <script setup lang="ts">
   import { ref, reactive, watch, onUnmounted } from 'vue';
   import type { FormInstance } from 'ant-design-vue';
+  import { InfoCircleOutlined } from '@ant-design/icons-vue';
   import { coalConsumptionChange$, deviceUsageChange$, deviceTotalInputChange$, currentStepRef } from './validation-subject';
+import { floatSum } from '@/util';
   // 定义props，接收父组件传递的energy对象，并添加默认值
   const props = defineProps({
     energy: {
@@ -60,29 +68,29 @@
   };
 
   const validateCoalConsumptionSum = async (_rule: any, value: number) => {
-    if (currentStepRef.value < 2) {
+    if (currentStepRef.value < 3) {
        return Promise.resolve();
     }
     const { raw_coal_consumption, clean_coal_consumption, other_coal_consumption } = coalConsumptionData;
-    const sum = raw_coal_consumption + clean_coal_consumption + other_coal_consumption;
-    if (value !== undefined && value !== null && Math.abs(value - sum) > 0.01) {
+    const sum = floatSum([raw_coal_consumption, clean_coal_consumption, other_coal_consumption]);
+    if (value != null && value !== sum) {
       return Promise.reject(`年煤炭消费总量(实物量)应等于原煤消费量+洗精煤消费量+其他煤炭消费（${sum.toFixed(2)}万吨）`);
     }
     return Promise.resolve();
   };
 
   const validateDeviceTotalInput = async (_rule: any, value: number) => {
-    if (currentStepRef.value < 3) {
+    if (currentStepRef.value < 4) {
        return Promise.resolve();
     }
-    if (value !== undefined && value !== null && Math.abs(value - deviceTotalInputData.totalInputQuantity) > 0.01) {
+    if (value != null && value !== deviceTotalInputData.totalInputQuantity) {
       return Promise.reject(`年煤炭消费总量(实物量)应等于主要用途情况，设备的"投入量"加和（${deviceTotalInputData.totalInputQuantity.toFixed(2)}万吨）`);
     }
     return Promise.resolve();
   };
 
   const validateRawCoal = async (_rule: any, value: number) => {
-    if (currentStepRef.value < 3) {
+    if (currentStepRef.value < 4) {
        return Promise.resolve();
     }
     if (value && value > 0 && !deviceUsageData.hasRawMaterial) {
@@ -123,6 +131,7 @@
       label: '年综合能耗当量值',
       unit: '万吨标准煤',
       required: true,
+      tooltip: `当行业大类为"44_电力、热力生产和供应"时，年综合能耗当量值应大于年综合能耗等价值；否则年综合能耗当量值应小于年综合能耗等价值`,
       rules: [{ required: true, message: '请输入年综合能耗当量值' }, maxRule, { validator: validateEnergyValue, trigger: 'change' }]
     },
     {
@@ -144,6 +153,7 @@
       label: '年原料用煤消费量',
       unit: '万吨',
       required: true,
+      tooltip: '年原料用煤消费量>0时，请在主要用途中列出\"原料\"数据',
       rules: [{ required: true, message: '请输入年原料用煤消费量' }, maxRule, { validator: validateRawCoal, trigger: 'change' }]
     },
     {
@@ -151,6 +161,7 @@
       label: '年煤炭消费总量(实物量)',
       unit: '万吨',
       required: true,
+      tooltip: '1、应等于原煤消费量+洗精煤消费量+其他煤炭消费<br>2、应等于主要用途情况，设备的\"投入量\"加和',
       rules: [{ required: true, message: '请输入年煤炭消费总量(实物量)' }, maxRule, { validator: validateCoalConsumptionSum, trigger: 'change' }, { validator: validateDeviceTotalInput, trigger: 'change' }]
     },
     {

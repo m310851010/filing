@@ -1,4 +1,5 @@
 import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs';
+import { ref } from 'vue';
 
 
 /**
@@ -34,6 +35,20 @@ export interface DeviceTotalInputData {
 }
 
 /**
+ * 设备变化验证数据
+ */
+export interface DeviceChangeValidationData {
+  /**
+   * 是否有发电锅炉
+   */
+  hasPowerBoiler: boolean;
+  /**
+   * 是否有发电锅炉选择自备电厂用锅炉
+   */
+  hasCaptivePowerPlantBoiler: boolean;
+}
+
+/**
  * 煤消费量变更事件
  */
 export const coalConsumptionChange$ = new ReplaySubject<CoalValidationData>(1);
@@ -45,6 +60,10 @@ export const deviceUsageChange$ = new ReplaySubject<DeviceUsageValidationData>(1
  * 设备输入量变更事件
  */
 export const deviceTotalInputChange$ = new ReplaySubject<DeviceTotalInputData>(1);
+/**
+ * 设备变化事件
+ */
+export const deviceChange$ = new ReplaySubject<number>(1);
 
 /**
  * 当前步骤

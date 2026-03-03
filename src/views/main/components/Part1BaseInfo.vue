@@ -29,7 +29,7 @@
             @search="handleSearch"
             @change="handleUnitNameChange">
             </a-select>
-            <span class="unit_name-tip" >
+            <span class="item-tip" style="color: rgba(0, 0, 0, 0.45);">
               <loading-outlined spin v-if="unitNameLoading" />
               <a-tooltip v-if="!unitNameLoading && unitNameTooltip" :title="unitNameTooltip">
                 <info-circle-outlined class="ant-form-item-explain-error"/>
@@ -137,19 +137,30 @@
       </a-col>
       <a-col :span="12">
         <a-form-item label="联系电话" name="tel">
-          <a-input v-model:value="formState.baseInfo.tel" placeholder="请输入联系电话" />
+          <div class="relative">
+            <a-input v-model:value="formState.baseInfo.tel" placeholder="请输入联系电话" />
+            <a-tooltip title="手机号或固话（手机号11位，固话如010-12345678）" placement="topRight">
+              <span class="item-tip" ><info-circle-outlined /></span>
+            </a-tooltip>
+          </div>
+          
         </a-form-item>
       </a-col>
       <a-col :span="12">
         <a-form-item label="是否含有自备电厂" name="is_captive_power_plant">
-          <CheckboxRadio
-            v-model="formState.baseInfo.is_captive_power_plant"
-            allowClear
-            :options="[
-              { label: '是', value: '1' },
-              { label: '否', value: '0' }
-            ]"
-          />
+          <div class="relative">
+            <CheckboxRadio
+              v-model="formState.baseInfo.is_captive_power_plant"
+              allowClear
+              :options="[
+                { label: '是', value: '1' },
+                { label: '否', value: '0' }
+              ]"
+            />
+            <a-tooltip :title="is_captive_power_plantTip" placement="topRight">
+              <span class="item-tip" ><info-circle-outlined /></span>
+            </a-tooltip>
+          </div>
         </a-form-item>
       </a-col>
     </a-row>
@@ -157,9 +168,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive } from 'vue';
+  import { ref, reactive, watch, onMounted, onUnmounted, nextTick } from 'vue';
   import type { FormInstance } from 'ant-design-vue';
-  import { LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
+  import { InfoCircleOutlined } from '@ant-design/icons-vue';
   import hangye from '@/assets/hangye.json';
   import China from '@/assets/China.json';
   import { forEachTree } from '@/util';
@@ -167,6 +178,7 @@
   import {  http, http2 } from '@/util/http';
   import { of, Subject } from 'rxjs';
   import { debounceTime, switchMap, tap, catchError } from 'rxjs/operators';
+  import { currentStepRef, deviceChange$ } from './validation-subject';
 
   // 定义props，接收父组件传递的baseInfo对象，并添加默认值
   const props = defineProps({
@@ -199,6 +211,8 @@
   const cityOptions = ref<any>([]);
   const countryOptions = ref<any>([]);
 
+  const is_captive_power_plantTip = `设备列表中至少要有一个类型选择"发电锅炉"且"自备电厂用锅炉"选择对应值`;
+
   const handletrade_aChange = (value: string) => {
     const selectedtrade_a = trade_aOptions.value.find((item: any) => item.value === value);
     trade_bOptions.value = selectedtrade_a?.children || [];
@@ -215,6 +229,10 @@
     tradeDOptions.value = [];
     formState.baseInfo.trade_c = null;
     formState.baseInfo.trade_d = null;
+    // 行业大类改变时触发验证是否含有自备电厂
+    nextTick(() => {
+      formRef.value?.validateFields(['is_captive_power_plant']);
+    });
   };
 
   const handletrade_cChange = (value: string) => {
@@ -321,6 +339,38 @@
     });
   };
 
+  // 校验自备电厂字段
+  const validateCaptivePowerPlant = async (_rule: any, value: string) => {
+    if (value == null) {
+       return Promise.resolve();
+    }
+
+     // 当行业大类以44开头时，不校验
+    if (/^44/.test(formState.baseInfo.trade_b)) {
+       return Promise.resolve();
+    }
+
+    if (currentStepRef.value < 4) {
+      return Promise.resolve();
+    }
+
+    const devices = filingData?.devices || [];
+    const powerBoilers = devices.filter((device: any) => device.equipment_type === '发电锅炉');
+
+     const yn = value === '1' ? '是' : '否';
+    // 设备类型至少要有一个选择发电锅炉
+    if (!powerBoilers.length) {
+      return Promise.reject('设备列表中至少要有一个类型选择"发电锅炉"且"自备电厂用锅炉"选择"' + yn + '"');
+    }
+
+    const hasCaptivePowerPlantBoiler = powerBoilers.some((device: any) => device.is_captive_power_plant_boiler === value);
+    if (!hasCaptivePowerPlantBoiler) {
+       return Promise.reject('设备列表中至少要有一个类型选择"发电锅炉"且"自备电厂用锅炉"选择"' + yn + '"');
+    }
+
+    return Promise.resolve();
+  };
+
   const rules = {
     stat_date: [{ required: true, message: '请选择统计日期' }],
     unit_name: [
@@ -341,7 +391,10 @@
         message: '请输入正确的手机号或固话（手机号11位，固话如010-12345678）'
       }
     ],
-    is_captive_power_plant: [{ required: true, message: '请选择是否含有自备电厂' }]
+    is_captive_power_plant: [
+      { required: true, message: '请选择是否含有自备电厂' },
+      { validator: validateCaptivePowerPlant },
+    ]
   };
 
   const validateForm = async () => {
@@ -370,6 +423,25 @@
       filingData = newVal || {}
     }
   );
+
+  // 订阅设备变化事件，当第五部分设备类型或自备电厂用锅炉变化时重新校验
+  let deviceChangeSubscription: any;
+  onMounted(() => {
+    deviceChangeSubscription = deviceChange$.subscribe(() => {
+      // 重新校验自备电厂字段
+      if (formState.baseInfo.is_captive_power_plant != null ) {
+        nextTick(() => {
+          formRef.value?.validateFields(['is_captive_power_plant']);
+        });
+      }
+    });
+  });
+
+  onUnmounted(() => {
+    if (deviceChangeSubscription) {
+      deviceChangeSubscription.unsubscribe();
+    }
+  });
 
   defineExpose({
     validateForm,

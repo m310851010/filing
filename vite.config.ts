@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
 import legacy from '@vitejs/plugin-legacy';
@@ -9,6 +9,22 @@ import Components from 'unplugin-vue-components/vite';
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers';
 
 export const r = (...args: any[]) => resolve(__dirname, '.', ...args);
+
+function configHtmlPlugin(envConfig: Record<string, string>): Plugin {
+  return {
+    name: 'html-transform',
+    enforce: 'post',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, { path }) {
+        if (path.endsWith('index.html') || path.endsWith('gov.html')) {
+          return html.replace('<%= title %>', envConfig.M_APP_NAME);
+        }
+        return html;
+      }
+    }
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(env => {
@@ -24,7 +40,8 @@ export default defineConfig(env => {
       target: 'es2015',
       rollupOptions: {
         input: {
-          main: r('index.html')
+          main: r('index.html'),
+          gov: r('gov.html')
         }
       }
     },
@@ -50,6 +67,7 @@ export default defineConfig(env => {
       },
     },
     plugins: [
+      configHtmlPlugin(envConfig),
       vue(),
       vueJsx(),
       AutoImport({

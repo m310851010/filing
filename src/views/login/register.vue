@@ -4,7 +4,7 @@
       <h1 class="title">个人注册</h1>
 
       <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical" class="register-form" @finish="handleRegister">
-        <a-form-item name="username">
+        <a-form-item name="username" extra="用户名由6~18个英文字符或数字组成！">
           <a-input v-model:value="formState.username" placeholder="请输入用户名" size="large">
             <template #prefix>
               <UserOutlined class="input-icon" />
@@ -12,7 +12,7 @@
           </a-input>
         </a-form-item>
 
-        <a-form-item name="password">
+        <a-form-item name="password" extra="密码必须由8~18位的大小写字母、数字和特殊字符组成！">
           <a-input-password v-model:value="formState.password" placeholder="请输入密码" size="large">
             <template #prefix>
               <LockOutlined class="input-icon" />
@@ -132,7 +132,7 @@
     password: [
       { required: true, message: '请输入密码' },
       {
-        pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,18}$/,
+        pattern: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[`~!@#$%^&*()_+<>?:"{},.\/\\;'[\]])[A-Za-z\d`~!@#$%^&*()_+<>?:"{},.\/\\;'[\]]{8,}$/,
         message: '密码必须由8~18位的大小写字母、数字和特殊字符组成！'
       }
     ],

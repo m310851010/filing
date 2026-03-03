@@ -1,13 +1,7 @@
 <template>
   <LoginCard>
     <div class="login-form-content">
-      <h1 class="title">数据填报辅助工具</h1>
-
-      <a-tabs v-model:activeKey="userType" centered class="custom-tabs">
-        <a-tab-pane :key="1" tab="个人用户" />
-        <a-tab-pane :key="2" tab="政府用户" />
-      </a-tabs>
-
+      <h1 class="title">{{ M_APP_NAME }}</h1>
       <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical" class="login-form" @finish="handleLogin">
         <a-form-item name="username">
           <a-input v-model:value="formState.username" placeholder="请输入用户名" size="large">
@@ -90,10 +84,12 @@
   import type { FormInstance } from 'ant-design-vue';
   import LoginCard from './login-card.vue';
   import { login, getCaptcha, getSmsValidTime, sendSmsCode, type LoginModel } from './login.service';
+  import { useAppConfig } from '@/hook/useAppConfig';
+  const { M_APP_NAME, M_LOGIN_TYPE, mode } = useAppConfig();
 
   // 状态定义
   const router = useRouter();
-  const userType = ref<number>(1); // tab key
+  const userType = ref<number>(Number(M_LOGIN_TYPE)); // tab key
   const loading = ref<boolean>(false);
   const smsLoading = ref<boolean>(false);
   const captchaUrl = ref<string>('');

@@ -2,6 +2,7 @@
   <div class="box flex-h">
     <div class="info-anchor">
       <a-anchor @click="handleClick" :offsetTop="60" >
+        <a-anchor-link href="#unitInfo" title="填写单位属性" />
         <a-anchor-link href="#baseInfo" title="单位基础信息填写" />
         <a-anchor-link href="#energySummary" title="单位能源消费综合信息" />
         <a-anchor-link href="#coalDetail" title="分品种煤炭消费情况" />
@@ -14,28 +15,31 @@
         <a-space>
           <a-button @click="handleImportDBFile" type="primary" >导入db文件</a-button>
           <a-button @click="handleValidateData" type="primary" >数据校核</a-button>
-          <a-button type="primary" :disabled="!canExport" @click="handleExportDBFile">导出db文件</a-button>
+          <a-button type="primary" :disabled="currentStep <= 2" @click="handleExportDBFile">导出db文件</a-button>
           <a-button :disabled="true" >导出excel文件</a-button> 
         </a-space>
       </template>
 
-    
       <div class="box-content" style="overflow: auto;">
         <div :style="{minWidth: currentStep === 3 ? '1310px' : '100%', paddingBottom: '24px', height: '100%'}">
           <div v-if="currentStep >= 0">
-            <div id="baseInfo" class="titile-line">（1）单位基础信息填写</div>
-            <Part1BaseInfo v-if="currentStep >= 0" ref="baseInfoRef"  v-model:baseInfo="formData.baseInfo" v-model:filingData="formData" />
+            <div id="unitInfo" class="titile-line">（1）填写单位属性</div>
+            <Part0UnitInfo ref="unitInfoRef" v-model:unitInfo="formData.unitInfo" v-model:filingData="formData" />
           </div>
-          <div v-if="currentStep >= 1" >
-            <div id="energySummary" class="titile-line">（2）单位能源消费综合信息<b class="ant-form-item-explain-error">（保留2位小数数字）</b></div>
+          <div v-if="currentStep >= 1">
+            <div id="baseInfo" class="titile-line">（2）填写单位基础信息</div>
+            <Part1BaseInfo ref="baseInfoRef" v-model:baseInfo="formData.baseInfo" v-model:filingData="formData" />
+          </div>
+          <div v-if="currentStep >= 2" >
+            <div id="energySummary" class="titile-line">（3）单位能源消费综合信息<b class="ant-form-item-explain-error">（保留2位小数数字）</b></div>
             <Part2EnergySummary ref="energySummaryRef" v-model:energy="formData.energy" v-model:filingData="formData" />
           </div>
-          <div v-if="currentStep >= 2" style="margin-bottom: 24px;">
-            <div id="coalDetail" class="titile-line">（3）分品种煤炭消费情况<b class="ant-form-item-explain-error">（保留2位小数数字）</b></div>
+          <div v-if="currentStep >= 3" style="margin-bottom: 24px;">
+            <div id="coalDetail" class="titile-line">（4）分品种煤炭消费情况<b class="ant-form-item-explain-error">（保留2位小数数字）</b></div>
             <Part3CoalDetail ref="coalDetailRef" v-model:coal="formData.coal" v-model:filingData="formData" />
           </div>
-          <div v-if="currentStep >= 3">
-            <div id="deviceUsage" class="titile-line">（4）分设备煤炭消费情况</div>
+          <div v-if="currentStep >= 4">
+            <div id="deviceUsage" class="titile-line">（5）分设备煤炭消费情况</div> 
             <Part4DeviceUsage ref="deviceUsageRef" v-model:devices="formData.devices" v-model:filingData="formData" />
           </div>
         </div>
@@ -76,24 +80,26 @@ import { UUID } from '@/util';
 import { downloadByAjaxResponse } from '@/util/download';
 import { currentStepRef } from './components/validation-subject';
 
+  const Part0UnitInfo = defineAsyncComponent(() => import('./components/Part0UnitInfo.vue'));
   const Part1BaseInfo = defineAsyncComponent(() => import('./components/Part1BaseInfo.vue'));
   const Part2EnergySummary = defineAsyncComponent(() => import('./components/Part2EnergySummary.vue'));
   const Part3CoalDetail = defineAsyncComponent(() => import('./components/Part3CoalDetail.vue'));
   const Part4DeviceUsage = defineAsyncComponent(() => import('./components/Part4DeviceUsage.vue'));
 
+  const unitInfoRef = ref<typeof Part0UnitInfo>();
   const baseInfoRef = ref<typeof Part1BaseInfo>();
   const energySummaryRef = ref<typeof Part2EnergySummary>();
   const coalDetailRef = ref<typeof Part3CoalDetail>();
   const deviceUsageRef = ref<typeof Part4DeviceUsage>();
-  const forms = [baseInfoRef, energySummaryRef, coalDetailRef, deviceUsageRef];
+  const forms = [unitInfoRef, baseInfoRef, energySummaryRef, coalDetailRef, deviceUsageRef];
 
   const currentStep = ref(0);
-  const canExport = ref(false);
   const importModalVisible = ref(false);
   const fileList = ref<UploadProps['fileList']>([]);
   const importing = ref(false);
 
   const formData = reactive({
+    unitInfo: {},
     baseInfo: { stat_date: '2025' },
     energy: {},
     coal: {},
@@ -109,8 +115,14 @@ import { currentStepRef } from './components/validation-subject';
   const getFormData = async () => {
     const data: Record<string, any> = {};
 
-    const valid = await baseInfoRef.value!.validateForm();
-    if (!valid) {
+    const unitInfoValid = await unitInfoRef.value!.validateForm();
+    if (!unitInfoValid) {
+      message.error('请填写完整单位属性');
+      return null;
+    }
+    
+    const baseInfoValid = await baseInfoRef.value!.validateForm();
+    if (!baseInfoValid) {
       message.error('请填写完整单位基础信息');
       return null;
     }
@@ -196,9 +208,6 @@ import { currentStepRef } from './components/validation-subject';
     if (valid) {
       currentStep.value++;
       currentStepRef.value = currentStep.value;
-      if (currentStep.value > 0) {
-        canExport.value = true;
-      }
     }
   };
 
@@ -237,7 +246,6 @@ import { currentStepRef } from './components/validation-subject';
       message.success('导入成功');
       currentStep.value = 3;
       currentStepRef.value = 3;
-      canExport.value = true;
       
       // 重置所有表单校验状态
       forms.forEach(form => form?.value?.clearValidate());

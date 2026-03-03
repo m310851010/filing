@@ -3,6 +3,7 @@ import { catchError, finalize, map, Observable, switchMap } from 'rxjs';
 import { globalLoading } from '@/components/globalLoading';
 import { userService } from '@/hook/user.service';
 import { Constant } from '@/views/constant';
+import { getEnvValue } from '@/hook/useAppConfig';
 
   let loginBack = false;
   function handleLoginBack() {
@@ -36,7 +37,7 @@ export function httpSetup() {
       if (url.charAt(0) !== '/') {
         url = '/' + url;
       }
-      url = (import.meta.env.M_BASE_API || '') + url;
+      url = (getEnvValue('M_BASE_API') ) + url;
     }
     config.url = url;
 

@@ -152,14 +152,6 @@
           />
         </a-form-item>
       </a-col>
-      <a-col :span="12">
-        <a-form-item label="企业类型" name="enterprise_type">
-          <a-select v-model:value="formState.baseInfo.enterprise_type" placeholder="请选择企业类型">
-            <a-select-option value="规上企业">规上企业</a-select-option>
-            <a-select-option value="规下企业">规下企业</a-select-option>
-          </a-select>
-        </a-form-item>
-      </a-col>
     </a-row>
   </a-form>
 </template>
@@ -349,8 +341,7 @@
         message: '请输入正确的手机号或固话（手机号11位，固话如010-12345678）'
       }
     ],
-    is_captive_power_plant: [{ required: true, message: '请选择是否含有自备电厂' }],
-    enterprise_type: [{ required: true, message: '请选择企业类型' }]
+    is_captive_power_plant: [{ required: true, message: '请选择是否含有自备电厂' }]
   };
 
   const validateForm = async () => {

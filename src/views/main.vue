@@ -1,7 +1,7 @@
 <template>
   <a-layout style="padding-top: 60px; height: 100%;" >
     <div class="header-container">
-      <div   class="flex-main text-center" style="font-size: 26px; font-weight: bold;">数据填报辅助工具</div>
+      <div   class="flex-main text-center" style="font-size: 26px; font-weight: bold;">{{ M_APP_NAME }}</div>
       <div class="layout-header-action">
         <a-dropdown class="header-action-item" trigger="hover">
           <div @click.prevent>
@@ -36,6 +36,8 @@
   import {  DownOutlined, ExportOutlined } from '@ant-design/icons-vue';
   import { userService } from '@/hook/user.service';
   import { Modal } from 'ant-design-vue';
+  import { useAppConfig } from '@/hook/useAppConfig';
+  const { M_APP_NAME } = useAppConfig();
 
   // 菜单
   const menus = ref([

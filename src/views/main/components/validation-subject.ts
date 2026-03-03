@@ -1,4 +1,4 @@
-import { BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs';
 
 
 /**
@@ -36,15 +36,15 @@ export interface DeviceTotalInputData {
 /**
  * 煤消费量变更事件
  */
-export const coalConsumptionChange$ = new Subject<CoalValidationData>();
+export const coalConsumptionChange$ = new ReplaySubject<CoalValidationData>(1);
 /**
  * 设备用途变更事件
  */
-export const deviceUsageChange$ = new Subject<DeviceUsageValidationData>();
+export const deviceUsageChange$ = new ReplaySubject<DeviceUsageValidationData>(1);
 /**
  * 设备输入量变更事件
  */
-export const deviceTotalInputChange$ = new Subject<DeviceTotalInputData>();
+export const deviceTotalInputChange$ = new ReplaySubject<DeviceTotalInputData>(1);
 
 /**
  * 当前步骤

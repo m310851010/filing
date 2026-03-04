@@ -15,7 +15,7 @@
         <a-space>
           <a-button @click="handleImportDBFile" type="primary" >导入db文件</a-button>
           <a-button @click="handleValidateData" type="primary" >数据校核</a-button>
-          <a-button type="primary" :disabled="currentStep <= 2" @click="handleExportDBFile">导出db文件</a-button>
+          <a-button type="primary" :disabled="currentStep <= 1" @click="handleExportDBFile">导出db文件</a-button>
           <a-button :disabled="true" >导出excel文件</a-button> 
         </a-space>
       </template>

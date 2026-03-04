@@ -72,7 +72,7 @@
                 >
                   <a-input-number v-model:value="device.design_life" :min="0" :max="50" :precision="0" :step="1" placeholder="设计年限" @change="() => onDesignLifeChange(device, index)" />
                 </a-form-item>
-                <a-form-item
+                <!-- <a-form-item
                   required
                   label="能效水平"
                   :name="['devices', index, 'enecrgy_efficienct_bmk']"
@@ -81,7 +81,7 @@
                   <a-select v-model:value="device.enecrgy_efficienct_bmk" placeholder="能效水平" allowClear style="width: 200px">
                     <a-select-option v-for="t in enecrgy_efficienct_bmks" :key="t" :value="t">{{ t }}</a-select-option>
                   </a-select>
-                </a-form-item>
+                </a-form-item> -->
                 <a-form-item
                   required
                   label="容量单位"

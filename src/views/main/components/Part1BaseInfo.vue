@@ -148,7 +148,7 @@
       </a-col>
       <a-col :span="12">
         <a-form-item label="是否含有自备电厂" name="is_captive_power_plant">
-          <div class="relative">
+          <span class="relative">
             <CheckboxRadio
               v-model="formState.baseInfo.is_captive_power_plant"
               allowClear
@@ -158,9 +158,9 @@
               ]"
             />
             <a-tooltip :title="is_captive_power_plantTip" placement="topRight">
-              <span class="item-tip" ><info-circle-outlined /></span>
+              <span class="item-tip" style="top:-4px"><info-circle-outlined /></span>
             </a-tooltip>
-          </div>
+          </span>
         </a-form-item>
       </a-col>
     </a-row>

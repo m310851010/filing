@@ -25,7 +25,7 @@
       </a-col>
 
       <a-col :span="12">
-        <a-card title="焦炭消费情况" size="small" class="h-100">
+        <a-card title="其他煤品消费情况" size="small" class="h-100">
           <a-form-item
             v-for="field in rightFields"
             :key="field.key"
@@ -113,9 +113,9 @@
       unit: '万吨',
       required: true,
       tooltip: '原煤消费量应等于其中各项之和（无烟煤+烟煤+褐煤）',
-      rules: [{ required: true, message: '请输入原煤消费量' }, maxRule, { validator: validateRawCoalConsumption }]
+      rules: [{ required: true, message: '请输入原煤消费量' }, maxRule/*, { validator: validateRawCoalConsumption }*/]
     },
-    {
+    /*{
       key: 'annual_anthracite_consumption',
       label: '其中：无烟煤消费量',
       unit: '万吨',
@@ -135,7 +135,7 @@
       unit: '万吨',
       required: true,
       rules: [{ required: true, message: '请输入褐煤消费量' }, maxRule, { validator: validateCoalComponent }]
-    },
+    },*/
     {
       key: 'annual_clean_coal_consumption',
       label: '洗精煤消费量',
@@ -145,10 +145,10 @@
     },
     {
       key: 'annual_other_coal_consumption',
-      label: '其他煤炭消费',
+      label: '其他洗煤消费',
       unit: '万吨',
       required: true,
-      rules: [{ required: true, message: '请输入其他煤炭消费' }, maxRule]
+      rules: [{ required: true, message: '请输入其他洗煤消费' }, maxRule]
     },
     {
       key: 'annual_coal_products_consumption',
@@ -173,7 +173,7 @@
       required: true,
       unit: '万吨',
       rules: [{ required: true, message: '请输入兰炭消费量' }, maxRule]
-    },
+    }/*,
     {
       key: 'annual_blast_furnace_gas_consumption',
       label: '高炉煤气消费量',
@@ -187,7 +187,7 @@
       required: true,
       unit: '万立方米',
       rules: [{ required: true, message: '请输入焦炉煤气消费量' }, maxRule]
-    }
+    }*/
   ];
 
   const validateForm = async () => {
@@ -204,7 +204,7 @@
   };
 
   // 监听原煤消费量变化，重新验证"其中"各字段
-  watch(
+ /* watch(
     () => formState.coal.annual_raw_coal_consumption,
     () => {
       // 使用 setTimeout 确保在值更新后再验证
@@ -219,9 +219,9 @@
       }, 0);
     }
   );
-
+*/
   // 监听"其中"各字段变化，重新验证原煤消费量和其他"其中"字段
-  watch(
+  /*watch(
     () => [
       formState.coal.annual_anthracite_consumption,
       formState.coal.annual_bituminous_coal_consumption,
@@ -239,7 +239,7 @@
         });
       }, 0);
     }
-  );
+  );*/
 
   onMounted(() => {
     formState.coal = props.coal || {}

@@ -74,7 +74,7 @@ import { floatSum } from '@/util';
     const { raw_coal_consumption, clean_coal_consumption, other_coal_consumption } = coalConsumptionData;
     const sum = floatSum([raw_coal_consumption, clean_coal_consumption, other_coal_consumption]);
     if (value != null && value !== sum) {
-      return Promise.reject(`年煤炭消费总量(实物量)应等于原煤消费量+洗精煤消费量+其他煤炭消费（${sum.toFixed(2)}万吨）`);
+      return Promise.reject(`年煤炭消费总量(实物量)应等于原煤消费量+洗精煤消费量+其他洗煤消费（${sum.toFixed(2)}万吨）`);
     }
     return Promise.resolve();
   };
@@ -161,7 +161,7 @@ import { floatSum } from '@/util';
       label: '年煤炭消费总量(实物量)',
       unit: '万吨',
       required: true,
-      tooltip: '1、应等于原煤消费量+洗精煤消费量+其他煤炭消费<br>2、应等于主要用途情况，设备的\"投入量\"加和',
+      tooltip: '1、应等于原煤消费量+洗精煤消费量+其他洗煤消费<br>2、应等于主要用途情况，设备的\"投入量\"加和',
       rules: [{ required: true, message: '请输入年煤炭消费总量(实物量)' }, maxRule, { validator: validateCoalConsumptionSum, trigger: 'change' }, { validator: validateDeviceTotalInput, trigger: 'change' }]
     },
     {

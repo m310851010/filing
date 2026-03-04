@@ -9,7 +9,7 @@ CREATE TABLE "enterprise_coal_consumption" (
 	"annual_bituminous_coal_consumption" varchar(100) NOT NULL,   -- 其中：年烟煤消费量，2位小数，加密
 	"annual_lignite_consumption" varchar(100) NOT NULL,           -- 其中：年褐煤消费量，2位小数，加密
   "annual_clean_coal_consumption" varchar(100) NOT NULL,        -- 年洗精煤消费量，2位小数，加密
-  "annual_other_coal_consumption" varchar(100) NOT NULL,        -- 年其他煤炭消费，2位小数，加密
+  "annual_other_coal_consumption" varchar(100) NOT NULL,        -- 年其他洗煤消费，2位小数，加密
 	"annual_coal_products_consumption" varchar(100) NOT NULL,     -- 年煤制品消费总量，2位小数，加密
 	"annual_coke_consumption" varchar(100) NOT NULL,              -- 年焦炭消费量，2位小数，加密
   "annual_blue_coke_consumption" varchar(100) NOT NULL,         -- 年兰炭消费量，2位小数，加密

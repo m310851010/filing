@@ -30,7 +30,7 @@ const input_variety: Array<{ value: string; unit: string }> = [
     value: '兰炭',
     // 投入计量单位
     unit: '万吨'
-  },
+  }/*,
   {
     value: '焦炉煤气',
     // 投入计量单位
@@ -40,7 +40,7 @@ const input_variety: Array<{ value: string; unit: string }> = [
     value: '高炉煤气',
     // 投入计量单位
     unit: '万立方米'
-  }
+  }*/
 ];
 
 // 容量单位
@@ -96,25 +96,6 @@ const deviceTypes = [
         specific_usage: [
           {
             value: '提供蒸汽',
-            input_variety,
-            // 产出品种品类
-            output_energy_types: [
-              {
-                value: '蒸汽（200℃以上）',
-                // 产出计量单位
-                unit: '百万千焦'
-              }
-            ]
-          }
-        ]
-      },
-      {
-        value: '供热',
-        //具体用途
-        specific_usage: [
-          {
-            value: '提供蒸汽',
-            // 投入品种品类
             input_variety,
             // 产出品种品类
             output_energy_types: [

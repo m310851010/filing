@@ -4,43 +4,33 @@ const input_variety: Array<{ value: string; unit: string }> = [
   {
     value: '原煤',
     // 投入计量单位
-    unit: '万吨'
+    unit: '吨'
   },
   {
     value: '洗精煤',
     // 投入计量单位
-    unit: '万吨'
+    unit: '吨'
   },
   {
     value: '其他洗煤',
     // 投入计量单位
-    unit: '万吨'
+    unit: '吨'
   },
   {
     value: '煤制品',
     // 投入计量单位
-    unit: '万吨'
+    unit: '吨'
   },
   {
     value: '焦炭',
     // 投入计量单位
-    unit: '万吨'
+    unit: '吨'
   },
   {
     value: '兰炭',
     // 投入计量单位
-    unit: '万吨'
-  }/*,
-  {
-    value: '焦炉煤气',
-    // 投入计量单位
-    unit: '万立方米'
-  },
-  {
-    value: '高炉煤气',
-    // 投入计量单位
-    unit: '万立方米'
-  }*/
+    unit: '吨'
+  }
 ];
 
 // 容量单位
@@ -111,7 +101,7 @@ const deviceTypes = [
     ]
   },
   {
-    value: '工业锅炉',
+    value: '供热锅炉',
     capacity_units: toSelectItems(['吨/小时', '兆瓦']),
     // 主要用途
     children: [
@@ -146,7 +136,7 @@ const deviceTypes = [
               {
                 value: '热水',
                 // 产出计量单位
-                unit: '万立方米'
+                unit: '吨'
               }
             ]
           },
@@ -158,6 +148,8 @@ const deviceTypes = [
             output_energy_types: [
               {
                 value: '热载体',
+                // 产出计量单位
+                unit: '吨'
               }
             ]
           }
@@ -201,42 +193,42 @@ const deviceTypes = [
               {
                 value: '煤制油',
                 // 产出计量单位
-                unit: '万吨'
-              },
-              {
-                value: '煤制气',
-                // 产出计量单位
-                unit: '万立方米'
+                unit: '吨'
               },
               {
                 value: '煤制合成氨',
                 // 产出计量单位
-                unit: '万吨'
+                unit: '吨'
               },
               {
                 value: '煤制甲醇',
                 // 产出计量单位
-                unit: '万吨'
+                unit: '吨'
               },
               {
                 value: '煤制乙二醇',
                 // 产出计量单位
-                unit: '万吨'
+                unit: '吨'
               },
               {
                 value: '煤制烯烃',
                 // 产出计量单位
-                unit: '万吨'
+                unit: '吨'
               },
               {
                 value: '电石',
                 // 产出计量单位
-                unit: '万吨'
+                unit: '吨'
               },
               {
                 value: '黄磷',
                 // 产出计量单位
-                unit: '万吨'
+                unit: '吨'
+              },
+              {
+                value: '煤制气',
+                // 产出计量单位
+                unit: '立方米'
               }
             ]
           }
@@ -266,13 +258,7 @@ const deviceTypes = [
           {
             value: '还原剂',
             // 投入品种
-            input_variety: [
-              {
-                value: '焦炭',
-                // 投入计量单位
-                unit: '万吨'
-              }
-            ]
+            input_variety
           }
         ]
       }
@@ -292,22 +278,37 @@ const deviceTypes = [
             // 投入品种
             input_variety: [
               {
-                value: '煤炭',
+                value: '原煤',
                 // 投入计量单位
-                unit: '万吨'
-              }
+                unit: '吨'
+              },
+              {
+                value: '洗精煤',
+                // 投入计量单位
+                unit: '吨'
+              },
+              {
+                value: '其他洗煤',
+                // 投入计量单位
+                unit: '吨'
+              },
+              {
+                value: '煤制品',
+                // 投入计量单位
+                unit: '吨'
+              },
             ],
             // 产出品种品类
             output_energy_types: [
               {
                 value: '焦炭',
                 // 产出计量单位
-                unit: '万吨'
+                unit: '吨'
               },
               {
                 value: '焦炉煤气',
                 // 产出计量单位
-                unit: '万立方米'
+                unit: '立方米'
               }
             ]
           }
@@ -329,10 +330,25 @@ const deviceTypes = [
             // 投入品种
             input_variety: [
               {
-                value: '煤炭',
+                value: '原煤',
                 // 投入计量单位
-                unit: '万吨'
-              }
+                unit: '吨'
+              },
+              {
+                value: '洗精煤',
+                // 投入计量单位
+                unit: '吨'
+              },
+              {
+                value: '其他洗煤',
+                // 投入计量单位
+                unit: '吨'
+              },
+              {
+                value: '煤制品',
+                // 投入计量单位
+                unit: '吨'
+              },
             ]
           }
         ]

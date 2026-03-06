@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, watch, onUnmounted } from 'vue';
+  import { ref, reactive, watch, onUnmounted, computed } from 'vue';
   import type { FormInstance } from 'ant-design-vue';
   import { InfoCircleOutlined } from '@ant-design/icons-vue';
   import { coalConsumptionChange$, deviceUsageChange$, deviceTotalInputChange$, currentStepRef } from './validation-subject';
@@ -51,12 +51,17 @@ import { floatSum } from '@/util';
     energy: props.energy
   });
 
+  const isBelowStandardUnit = computed(() => {
+    return filingData?.unitInfo?.enterprise_type === '规下单位';
+  });
+
   const maxRule = { type: 'number', max: 10000, message: '数值不能超过10000' };
 
   let coalConsumptionData = {
     raw_coal_consumption: 0,
     clean_coal_consumption: 0,
-    other_coal_consumption: 0
+    other_coal_consumption: 0,
+    annual_coal_products_consumption: 0
   };
 
   let deviceUsageData = {
@@ -71,10 +76,10 @@ import { floatSum } from '@/util';
     if (currentStepRef.value < 3) {
        return Promise.resolve();
     }
-    const { raw_coal_consumption, clean_coal_consumption, other_coal_consumption } = coalConsumptionData;
-    const sum = floatSum([raw_coal_consumption, clean_coal_consumption, other_coal_consumption]);
+    const { raw_coal_consumption, clean_coal_consumption, other_coal_consumption, annual_coal_products_consumption } = coalConsumptionData;
+    const sum = floatSum([raw_coal_consumption, clean_coal_consumption, other_coal_consumption, annual_coal_products_consumption]);
     if (value != null && value !== sum) {
-      return Promise.reject(`年煤炭消费总量(实物量)应等于原煤消费量+洗精煤消费量+其他洗煤消费（${sum.toFixed(2)}万吨）`);
+      return Promise.reject(`年煤炭消费总量(实物量)应等于原煤消费量+洗精煤消费量+其他洗煤消费+煤制品消费总量（${sum.toFixed(2)}万吨）`);
     }
     return Promise.resolve();
   };
@@ -83,8 +88,8 @@ import { floatSum } from '@/util';
     if (currentStepRef.value < 4) {
        return Promise.resolve();
     }
-    if (value != null && value !== deviceTotalInputData.totalInputQuantity) {
-      return Promise.reject(`年煤炭消费总量(实物量)应等于主要用途情况，设备的"投入量"加和（${deviceTotalInputData.totalInputQuantity.toFixed(2)}万吨）`);
+    if (value != null && Math.abs(value - deviceTotalInputData.totalInputQuantity) > 1) {  
+      return Promise.reject(`年煤炭消费总量(实物量)与主要用途情况，设备的"投入量"加和（${deviceTotalInputData.totalInputQuantity.toFixed(2)}万吨）相差1万吨以上`);
     }
     return Promise.resolve();
   };
@@ -125,43 +130,13 @@ import { floatSum } from '@/util';
     return Promise.resolve();
   };
 
-  const fields = [
-    {
-      key: 'annual_energy_equivalent_value',
-      label: '年综合能耗当量值',
-      unit: '万吨标准煤',
-      required: true,
-      tooltip: `当行业大类为"44_电力、热力生产和供应"时，年综合能耗当量值应大于年综合能耗等价值；否则年综合能耗当量值应小于年综合能耗等价值`,
-      rules: [{ required: true, message: '请输入年综合能耗当量值' }, maxRule, { validator: validateEnergyValue, trigger: 'change' }]
-    },
-    {
-      key: 'annual_energy_equivalent_cost',
-      label: '年综合能耗等价值',
-      unit: '万吨标准煤',
-      required: true,
-      rules: [{ required: true, message: '请输入年综合能耗等价值' }, maxRule]
-    },
-    {
-      key: 'annual_raw_material_energy',
-      label: '年原料用能消费量',
-      unit: '万吨标准煤',
-      required: true,
-      rules: [{ required: true, message: '请输入年原料用能消费量' }, maxRule, { validator: validateRawMaterialEnergy, trigger: 'change' }]
-    },
-    {
-      key: 'annual_raw_coal',
-      label: '年原料用煤消费量',
-      unit: '万吨',
-      required: true,
-      tooltip: '年原料用煤消费量>0时，请在主要用途中列出\"原料\"数据',
-      rules: [{ required: true, message: '请输入年原料用煤消费量' }, maxRule, { validator: validateRawCoal, trigger: 'change' }]
-    },
+  const coalTotalFields = [
     {
       key: 'annual_total_coal_consumption',
       label: '年煤炭消费总量(实物量)',
       unit: '万吨',
       required: true,
-      tooltip: '1、应等于原煤消费量+洗精煤消费量+其他洗煤消费<br>2、应等于主要用途情况，设备的\"投入量\"加和',
+      tooltip: '1、应等于原煤消费量+洗精煤消费量+其他洗煤消费+煤制品消费总量<br>2、应等于主要用途情况，设备的"投入量"加和',
       rules: [{ required: true, message: '请输入年煤炭消费总量(实物量)' }, maxRule, { validator: validateCoalConsumptionSum, trigger: 'change' }, { validator: validateDeviceTotalInput, trigger: 'change' }]
     },
     {
@@ -173,6 +148,45 @@ import { floatSum } from '@/util';
     }
   ];
 
+  const fields = computed(() => {
+    if (isBelowStandardUnit.value) {
+      return coalTotalFields;
+    }
+
+    return [
+      {
+        key: 'annual_energy_equivalent_value',
+        label: '年综合能耗当量值',
+        unit: '万吨标准煤',
+        required: true,
+        tooltip: `当行业大类为"44_电力、热力生产和供应"时，年综合能耗当量值应大于年综合能耗等价值；否则年综合能耗当量值应小于年综合能耗等价值`,
+        rules: [{ required: true, message: '请输入年综合能耗当量值' }, maxRule, { validator: validateEnergyValue, trigger: 'change' }]
+      },
+      {
+        key: 'annual_energy_equivalent_cost',
+        label: '年综合能耗等价值',
+        unit: '万吨标准煤',
+        required: true,
+        rules: [{ required: true, message: '请输入年综合能耗等价值' }, maxRule]
+      },
+      {
+        key: 'annual_raw_material_energy',
+        label: '年原料用能消费量',
+        unit: '万吨标准煤',
+        required: true,
+        rules: [{ required: true, message: '请输入年原料用能消费量' }, maxRule, { validator: validateRawMaterialEnergy, trigger: 'change' }]
+      },
+      {
+        key: 'annual_raw_coal',
+        label: '年原料用煤消费量',
+        unit: '万吨',
+        required: true,
+        tooltip: '年原料用煤消费量>0时，请在主要用途中列出"原料"数据',
+        rules: [{ required: true, message: '请输入年原料用煤消费量' }, maxRule, { validator: validateRawCoal, trigger: 'change' }]
+      },
+    ].concat(coalTotalFields);
+  });
+
   const validateForm = async () => {
     try {
       await formRef.value?.validate();
@@ -183,7 +197,16 @@ import { floatSum } from '@/util';
   };
 
   const getFormData = () => {
-    return JSON.parse(JSON.stringify(formState.energy));
+    const formData = JSON.parse(JSON.stringify(formState.energy));
+    
+    if (isBelowStandardUnit.value) {
+      formData.annual_energy_equivalent_value = 0;
+      formData.annual_energy_equivalent_cost = 0;
+      formData.annual_raw_material_energy = 0;
+      formData.annual_raw_coal = 0;
+    }
+    
+    return formData;
   };
 
   watch(

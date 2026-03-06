@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, defineAsyncComponent } from 'vue';
+  import { ref, reactive, defineAsyncComponent, watch } from 'vue';
   import { Modal, message } from 'ant-design-vue';
   import { InboxOutlined } from '@ant-design/icons-vue';
   import { http } from '@/util/http';
@@ -79,6 +79,7 @@
 import { UUID } from '@/util';
 import { downloadByAjaxResponse } from '@/util/download';
 import { currentStepRef } from './components/validation-subject';
+import { openInfoModal, openModal } from '@/components/useModal';
 
   const Part0UnitInfo = defineAsyncComponent(() => import('./components/Part0UnitInfo.vue'));
   const Part1BaseInfo = defineAsyncComponent(() => import('./components/Part1BaseInfo.vue'));
@@ -97,6 +98,10 @@ import { currentStepRef } from './components/validation-subject';
   const importModalVisible = ref(false);
   const fileList = ref<UploadProps['fileList']>([]);
   const importing = ref(false);
+  /**
+   * 校验状态0:未校验,1:校验通过,2:校验不通过
+   */
+  let checkStatus = '0';
 
   const formData = reactive({
     unitInfo: {},
@@ -105,6 +110,15 @@ import { currentStepRef } from './components/validation-subject';
     coal: {},
     devices: []
   });
+
+  // 监听表单数据变化，当用户修改时重置校验状态
+  watch(
+    formData,
+    () => {
+      checkStatus = '0';
+    },
+    { deep: true }
+  );
 
   const getContainer = () => document.querySelector('.content');
 
@@ -173,16 +187,8 @@ import { currentStepRef } from './components/validation-subject';
  */
   const handleInvlidaExportDb = async (data: Record<string, any> | null | undefined) => {
     if (!data) return;
-    Modal.confirm({
-        title: '校验未通过',
-        content: '数据校验未通过，是否继续并下载文件？',
-        okText: '继续下载文件',
-        onOk: async () => {
-          data.checkStatus = '2';
-          await http.post('/data/filing/validate', data);
-          await downloadDBFile();
-        }
-      });
+      checkStatus = '2';
+      message.warning('数据校核未通过');
   }
 
   const handleValidateData = async () => {
@@ -200,15 +206,8 @@ import { currentStepRef } from './components/validation-subject';
       return;
     }
 
-    // 获取当前表单数据
-    const data = await getFormData();
-    if (!data) return;
-
-    data.checkStatus = '1';
-    const res = await http.post('/data/filing/validate', data);
-    if (res.success) {
-      message.success('校验通过');
-    }
+    checkStatus = '1';
+    message.success('数据校核通过');
   };
 
   const handleNextStep = async () => {
@@ -260,6 +259,7 @@ import { currentStepRef } from './components/validation-subject';
       // 重置所有表单校验状态
       forms.forEach(form => form?.value?.clearValidate());
       importModalVisible.value = false;
+      checkStatus = '0'
     } finally {
       importing.value = false;
     }
@@ -272,7 +272,7 @@ import { currentStepRef } from './components/validation-subject';
     // 获取当前表单数据
     const data = await getFormData();
     if (!data) return;
-    data.checkStatus = '0';
+    data.checkStatus = checkStatus;
     await http.post('/data/filing/validate', data);
     await downloadDBFile();
   };
@@ -281,7 +281,7 @@ import { currentStepRef } from './components/validation-subject';
    * 下载db文件
    */
    const downloadDBFile = async () => {
-    const res = await http.get(`/data/filing/export/db`, null, { observe: 'response', responseType: 'blob' });
+    const res = await http.post(`/data/filing/export/db`, {checkStatus}, { observe: 'response', responseType: 'blob' });
     downloadByAjaxResponse(res);
   };
 

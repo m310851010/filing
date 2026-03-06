@@ -265,7 +265,8 @@
     coalConsumptionChange$.next({
       raw_coal_consumption: formState.coal.annual_raw_coal_consumption || 0,
       clean_coal_consumption: formState.coal.annual_clean_coal_consumption || 0,
-      other_coal_consumption: formState.coal.annual_other_coal_consumption || 0
+      other_coal_consumption: formState.coal.annual_other_coal_consumption || 0,
+      annual_coal_products_consumption: formState.coal.annual_coal_products_consumption || 0
     });
   };
 
@@ -273,7 +274,8 @@
     () => [
       formState.coal.annual_raw_coal_consumption,
       formState.coal.annual_clean_coal_consumption,
-      formState.coal.annual_other_coal_consumption
+      formState.coal.annual_other_coal_consumption,
+      formState.coal.annual_coal_products_consumption
     ],
     () => {
       emitCoalConsumptionChange();

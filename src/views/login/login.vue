@@ -34,7 +34,7 @@
           </div>
         </a-form-item>
 
-        <a-form-item name="phone">
+        <!-- <a-form-item name="phone">
           <a-input v-model:value="formState.phone" placeholder="请输入手机号" size="large">
             <template #prefix>
               <PhoneOutlined class="input-icon" />
@@ -62,11 +62,12 @@
             </a-button>
           </a-input-group>
         </a-form-item>
+        -->
 
         <div class="form-options">
           <a-checkbox v-model:checked="formState.remember">记住用户</a-checkbox>
           <a v-if="userType === 1" class="register-link" @click="handleRegisterClick">立即注册</a>
-        </div>
+        </div> 
 
         <a-form-item class="submit-btn-row">
           <a-button type="primary" html-type="submit" size="large" block :loading="loading" class="login-button">登 录</a-button>
@@ -106,15 +107,15 @@
   const defaultFormState = import.meta.env.DEV? {
     username: 'test1234',
     password: 'Test@1234!',
-    phone: '13512345678',
+    // phone: '13512345678',
     smsCode: '1',
   }: {};
   
   const formState = reactive({
     username: '',
     password: '',
-    phone: '',
-    smsCode: '',
+    // phone: '',
+    // smsCode: '',
     verifyCode: '',
     ...defaultFormState,
     remember: false
@@ -125,11 +126,11 @@
     username: [{ required: true, message: '请输入用户名' }],
     password: [{ required: true, message: '请输入密码' }],
     verifyCode: [{ required: true, message: '请输入验证码' }],
-    phone: [
-      { required: true, message: '请输入手机号' },
-      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }
-    ],
-    smsCode: [{ required: true, message: '请输入手机验证码' }]
+    // phone: [
+    //   { required: true, message: '请输入手机号' },
+    //   { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }
+    // ],
+    // smsCode: [{ required: true, message: '请输入手机验证码' }]
   };
 
   // 获取验证码逻辑
@@ -204,7 +205,7 @@
   };
 
   // 获取短信验证码
-  const handleGetSmsCode = async () => {
+  /*const handleGetSmsCode = async () => {
     // 验证手机号
     if (!formState.phone) {
       message.error('请输入手机号');
@@ -250,7 +251,7 @@
     } finally {
       smsLoading.value = false;
     }
-  };
+  };*/
 
   // 初始化
   onMounted(() => {

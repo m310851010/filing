@@ -114,9 +114,11 @@
                     v-model:value="device.input_quantity"
                     :precision="2"
                     placeholder="年投入量"
-                    class="d-w"
+                    style="width: 150px"
                     readonly
-                  />
+                  >
+                    <template #addonAfter>万吨</template>
+                  </a-input-number>
                 </a-form-item>
               </a-space>
             </template>
@@ -210,11 +212,11 @@
                     <a-input v-model:value="record.input_unit" readonly class="w-100" />
                   </template>
                 </a-table-column>
-                <a-table-column title="年投入量" width="100px">
+                <a-table-column title="年投入量" width="150px">
                   <template #default="{ record, index: uIdx }">
                     <a-form-item
                       :name="['devices', index, 'usages', uIdx, 'input_quantity']"
-                      :rules="[{ required: true, message: '请输入年投入量' }, { type: 'number', max: 10000, message: '不能超过10000' }]"
+                      :rules="[{ required: true, message: '请输入年投入量' }, { type: 'number', max: 100000000, message: '不能超过100000000' }]"
                       style="margin-bottom: 0"
                     >
                       <a-input-number 
@@ -233,14 +235,15 @@
                     <a-form-item
                       :name="['devices', index, 'usages', uIdx, 'output_energy_types']"
                       :rules="[
-                        { validator: (rule: any, value: string) => validateOutputEnergyTypes(rule, value, record), trigger: 'change' },
-                        { validator: (rule: any, value: any) => validateUsageDuplicate(rule, value, device, record, 'output_energy_types'), trigger: 'change' }
+                        { validator: (rule: any, value: string) => validateOutputEnergyTypes(rule, value, record) },
+                        { validator: (rule: any, value: any) => validateUsageDuplicate(rule, value, device, record, 'output_energy_types') }
                       ]"
                       style="margin-bottom: 0"
                     >
                       <a-select
+                        v-if="record._specific_usage?.output_energy_types"
                         v-model:value="record.output_energy_types"
-                        :options="record._specific_usage?.output_energy_types || []"
+                        :options="record._specific_usage.output_energy_types"
                         show-search
                         allowClear
                         :filter-option="filterOption"
@@ -248,20 +251,22 @@
                         placeholder="产出品种品类"
                         @change="onOutputEnergyTypesChange(record)"
                       />
+                      <a-input v-else v-model:value="record.output_energy_types" class="w-100" placeholder="产出品种品类" />
                     </a-form-item>
                   </template>
                 </a-table-column>
                 <a-table-column title="产出计量单位" width="110px">
                   <template #default="{ record }">
-                    <a-input v-model:value="record.measurement_unit" readonly class="w-100" />
+                    <a-input v-model:value="record.measurement_unit" :readonly="!!record._specific_usage?.output_energy_types?.length"  class="w-100" />
                   </template>
                 </a-table-column>
 
-                <a-table-column title="年产出量" width="100px">
+                <a-table-column title="年产出量" width="150px">
                   <template #default="{ record, index: uIdx }">
                     <a-form-item
                       :name="['devices', index, 'usages', uIdx, 'output_quantity']"
-                      :rules="[{ required: true, message: '请输入年产出量' }]"
+                      :rules="[{ validator: (rule: any, value: number) => validateOutputQuantity(rule, value, record) },]"
+                      
                       style="margin-bottom: 0"
                     >
                       <a-input-number v-model:value="record.output_quantity" :precision="2" :min="0" class="w-100" placeholder="年产出量" />
@@ -308,7 +313,7 @@
   import type { FormInstance } from 'ant-design-vue';
   import { PlusOutlined } from '@ant-design/icons-vue';
   import { deviceTypes, DeviceType, MainUsage, SpecificUsage, OpgionUnit, filterOption } from './device_types';
-  import { floatSum, SelectOption, UUID } from '@/util';
+  import { floatSum, numberFixed, SelectOption, UUID } from '@/util';
   import { deviceUsageChange$, deviceTotalInputChange$, deviceChange$ } from './validation-subject';
 
   const props = defineProps({
@@ -343,6 +348,27 @@
     if (options.length > 0 && !value) {
       return Promise.reject('请选择产出品种品类');
     }
+    return Promise.resolve();
+  };
+
+   /**
+   * 验证产出量是否为空
+   * @param _rule 验证规则
+   * @param value 产出量
+   * @param record 用途
+   */
+  const validateOutputQuantity = async (_rule: any, value: number, record: Usage) => {
+    const options = record._specific_usage?.output_energy_types || [];
+    if (options.length > 0 && value == null) {
+      return Promise.reject('请输入年产出量');
+    }
+
+    if (value != null) {
+       if (value > 100000000) {
+          return Promise.reject('不能超过100000000');
+        }
+    }
+   
     return Promise.resolve();
   };
 
@@ -581,7 +607,7 @@
       }
       return floatSum([sum, usage.input_quantity!]);
     }, 0);
-    device.input_quantity = total;
+    device.input_quantity = numberFixed(total / 10000);
     emitDeviceTotalInputChange();
   };
 
@@ -589,7 +615,6 @@
   watch(
     () => props.devices,
     (newDevices) => {
-      console.log('watch props.devices', newDevices);
       newDevices.forEach((device: Device) => {
         // 添加或更新 _device_type
         if (device.equipment_type) {
@@ -688,7 +713,6 @@
   watch(
     () => formState.devices.map(device => (device.equipment_type || '') + (device.is_captive_power_plant_boiler || '')),
     () => {
-      console.log('设备类型或自备电厂用锅炉字段变化');
       deviceChange$.next(Date.now());
     },
     { deep: true }

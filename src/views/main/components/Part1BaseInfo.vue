@@ -157,7 +157,10 @@
                 { label: '否', value: '0' }
               ]"
             />
-            <a-tooltip :title="is_captive_power_plantTip" placement="topRight">
+            <a-tooltip placement="topRight">
+              <template #title>
+                <div v-html="is_captive_power_plantTip"></div>
+              </template>
               <span class="item-tip" style="top:-4px"><info-circle-outlined /></span>
             </a-tooltip>
           </span>
@@ -211,7 +214,8 @@
   const cityOptions = ref<any>([]);
   const countryOptions = ref<any>([]);
 
-  const is_captive_power_plantTip = `设备列表中至少要有一个类型选择"发电锅炉"且"自备电厂用锅炉"选择对应值`;
+  const is_captive_power_plantTip = `当选择"是"时，设备列表中至少要有一个类型选择"发电锅炉"且"自备电厂用锅炉"选择对应值<br>
+  当选择"否"时，类型选择"发电锅炉"的设备，"自备电厂用锅炉"应选择"否"`;
 
   const handletrade_aChange = (value: string) => {
     const selectedtrade_a = trade_aOptions.value.find((item: any) => item.value === value);
@@ -356,17 +360,28 @@
 
     const devices = filingData?.devices || [];
     const powerBoilers = devices.filter((device: any) => device.equipment_type === '发电锅炉');
+    const yn = value === '1' ? '是' : '否';
 
-     const yn = value === '1' ? '是' : '否';
-    // 设备类型至少要有一个选择发电锅炉
-    if (!powerBoilers.length) {
-      return Promise.reject('设备列表中至少要有一个类型选择"发电锅炉"且"自备电厂用锅炉"选择"' + yn + '"');
+    // 当自备电厂用锅炉选择"是"时，设备列表中至少要有一个类型选择"发电锅炉"
+    if (value ==='1') {
+      if (!powerBoilers.length) {
+        return Promise.reject('设备列表中至少要有一个类型选择"发电锅炉"');
+      }
+      const hasCaptivePowerPlantBoiler = powerBoilers.some((device: any) => device.is_captive_power_plant_boiler === value);
+      if (!hasCaptivePowerPlantBoiler) {
+        return Promise.reject('设备列表中至少要有一个类型选择"发电锅炉"且"自备电厂用锅炉"选择"' + yn + '"');
+      }
+      return Promise.resolve();
+    }
+     
+    if (powerBoilers.length) {
+     const hasCaptivePowerPlantBoiler = powerBoilers.some((device: any) => device.is_captive_power_plant_boiler === value);
+      if (!hasCaptivePowerPlantBoiler) {
+        return Promise.reject('设备列表中类型选择"发电锅炉"时，"自备电厂用锅炉"应选择"' + yn + '"');
+      }
     }
 
-    const hasCaptivePowerPlantBoiler = powerBoilers.some((device: any) => device.is_captive_power_plant_boiler === value);
-    if (!hasCaptivePowerPlantBoiler) {
-       return Promise.reject('设备列表中至少要有一个类型选择"发电锅炉"且"自备电厂用锅炉"选择"' + yn + '"');
-    }
+    
 
     return Promise.resolve();
   };
@@ -383,7 +398,7 @@
     trade_c: [{ required: true, message: '请选择行业中类' }],
     province_name: [{ required: true, message: '请选择单位所在省份' }],
     city_name: [{ required: true, message: '请选择单位所在地区市' }],
-    country_name: [],
+    country_name: [{ required: true, message: '请选择单位所在地区区县' }],
     tel: [
       { required: true, message: '请输入联系电话' },
       {

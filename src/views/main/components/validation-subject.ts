@@ -18,7 +18,12 @@ export interface CoalValidationData {
    * 其他用煤消费量
    */ 
   other_coal_consumption: number;
+  /**
+   * 煤制品用煤消费量
+   */ 
+  annual_coal_products_consumption: number;
 }
+  
 
 /**
  * 设备用途验证数据

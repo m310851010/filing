@@ -268,6 +268,16 @@ export interface TreeNode {
 export type TreeChildren<T = any> = (node: T, parentNode: T | undefined, level: number) => T[] | null;
 
 /**
+ * 浮点数保留小数位（处理精度问题）
+ * @param num 要处理的数字
+ * @param precision 保留小数位数，默认为2
+ * @returns 处理后的数字
+ */
+export function numberFixed(num: number, precision: number = 2): number {
+  return parseFloat(num.toFixed(precision));
+}
+
+/**
  * 浮点数求和（处理精度问题）
  * @param numbers 要相加的数字数组
  * @param precision 保留小数位数，默认为2
